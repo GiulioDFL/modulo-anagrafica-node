@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dettaglio Sede</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="card shadow">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0" id="pageTitle">Dettaglio Sede</h4>
+                <button onclick="window.close()" class="btn btn-sm btn-light">Chiudi</button>
+            </div>
+            <div class="card-body">
+                <form id="sediForm" autocomplete="off">
+                    <input type="hidden" id="id" name="id" value="<%= id %>">
+                    <input type="hidden" id="indirizzo_id" name="indirizzo_id">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Società <span class="text-danger">*</span></label>
+                            <select class="form-select" id="societa_id" name="societa_id" required></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo Sede <span class="text-danger">*</span></label>
+                            <select class="form-select" id="cva_tipo_sede_id" name="cva_tipo_sede_id" required></select>
+                        </div>
+                    </div>
+
+                    <h6 class="border-bottom pb-2 mb-3">Indirizzo</h6>
+                    <div class="row mb-2">
+                        <div class="col-md-8">
+                            <label class="form-label">Via</label>
+                            <input type="text" class="form-control" id="via" name="via">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Civico</label>
+                            <input type="text" class="form-control" id="numero_civico" name="numero_civico">
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3">
+                            <label class="form-label">CAP</label>
+                            <input type="text" class="form-control" id="cap" name="cap">
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Comune</label>
+                            <input type="text" class="form-control" id="comune" name="comune">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Provincia</label>
+                            <input type="text" class="form-control" id="provincia" name="provincia" maxlength="2">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Paese <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="paese" name="paese" value="IT" required>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="submit" class="btn btn-success">Salva</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const id = "<%= id %>";
+        const isNew = id === 'nuova';
+        const form = document.getElementById('sediForm');
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadDropdowns();
+            
+            if (isNew) {
+                document.getElementById('pageTitle').innerText = "Nuova Sede";
+                form.action = "/anagrafica/gestione-sedi/add";
+                document.getElementById('id').value = '';
+            } else {
+                document.getElementById('pageTitle').innerText = "Modifica Sede";
+                form.action = "/anagrafica/gestione-sedi/edit";
+                loadData();
+            }
+        });
+
+        async function loadDropdowns() {
+            const [socRes, tipiRes] = await Promise.all([
+                fetch('/api/anagrafica/societa'),
+                fetch('/api/tipi-sede')
+            ]);
+            const socData = await socRes.json();
+            const tipiData = await tipiRes.json();
+
+            const socSel = document.getElementById('societa_id');
+            socSel.innerHTML = '<option value="">Seleziona Società...</option>';
+            socData.forEach(s => socSel.innerHTML += `<option value="${s.id}">${s.ragione_sociale}</option>`);
+
+            const tipiSel = document.getElementById('cva_tipo_sede_id');
+            tipiSel.innerHTML = '<option value="">Seleziona Tipo...</option>';
+            tipiData.forEach(t => tipiSel.innerHTML += `<option value="${t.id}">${t.valore}</option>`);
+        }
+
+        function loadData() {
+            fetch(`/api/anagrafica/sedi?id=${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        const item = data[0];
+                        document.getElementById('indirizzo_id').value = item.indirizzo_id;
+                        document.getElementById('societa_id').value = item.societa_id;
+                        document.getElementById('cva_tipo_sede_id').value = item.cva_tipo_sede_id;
+                        document.getElementById('via').value = item.via || '';
+                        document.getElementById('numero_civico').value = item.numero_civico || '';
+                        document.getElementById('cap').value = item.cap || '';
+                        document.getElementById('comune').value = item.comune || '';
+                        document.getElementById('provincia').value = item.provincia || '';
+                        document.getElementById('paese').value = item.paese || 'IT';
+                    } else {
+                        alert("Sede non trovata.");
+                    }
+                });
+        }
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new URLSearchParams(new FormData(this));
+            fetch(this.action, { method: 'POST', body: formData, headers: {'Content-Type': 'application/x-www-form-urlencoded'} })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.error) alert("Errore: " + data.error);
+                    else {
+                        alert(data.message);
+                        if (isNew) window.close(); // O ricarica
+                    }
+                });
+        });
+    </script>
+</body>
+</html>

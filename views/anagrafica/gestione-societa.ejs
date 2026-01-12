@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Società</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        .table-hover tbody tr:hover {
+            background-color: rgba(0,0,0,.03);
+        }
+        .actions-col {
+            white-space: nowrap;
+            width: 1%;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container-fluid py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0 text-gray-800">Gestione Società</h1>
+            <a href="/anagrafica/dettaglio-societa/nuova" target="_blank" class="btn btn-success">
+                <i class="bi bi-plus-lg"></i> Nuova Società
+            </a>
+        </div>
+
+        <!-- Sezione Filtri -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Filtri di Ricerca</h6>
+            </div>
+            <div class="card-body">
+                <form id="filterForm" class="row g-3" autocomplete="off">
+                    <div class="col-md-3">
+                        <label for="filter_ragione_sociale" class="form-label">Ragione Sociale</label>
+                        <input type="text" class="form-control" id="filter_ragione_sociale" name="ragione_sociale">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filter_partita_iva" class="form-label">Partita IVA</label>
+                        <input type="text" class="form-control" id="filter_partita_iva" name="partita_iva">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filter_codice_fiscale" class="form-label">Codice Fiscale</label>
+                        <input type="text" class="form-control" id="filter_codice_fiscale" name="codice_fiscale">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filter_codice_destinatario" class="form-label">Codice Destinatario</label>
+                        <input type="text" class="form-control" id="filter_codice_destinatario" name="codice_destinatario">
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="button" class="btn btn-secondary me-2" onclick="resetFilters()">Reset</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Cerca</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tabella Risultati -->
+        <div class="card shadow">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Ragione Sociale</th>
+                                <th>Partita IVA</th>
+                                <th>Codice Fiscale</th>
+                                <th>Cod. Dest.</th>
+                                <th class="actions-col">Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody id="societaTableBody">
+                            <!-- Contenuto caricato via AJAX -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Funzione per gestire la conferma di eliminazione sicura
+        function confirmDelete(formElement) {
+            const input = prompt("ATTENZIONE: Questa operazione è irreversibile.\nPer confermare scrivi 'elimina':");
+            if (input === 'elimina') {
+                formElement.confirm_prompt.value = input;
+                return true;
+            }
+            alert("Operazione annullata: codice di conferma errato.");
+            return false;
+        }
+
+        // Funzione per caricare i dati via AJAX
+        function loadSocieta() {
+            const formData = new FormData(document.getElementById('filterForm'));
+            const params = new URLSearchParams(formData).toString();
+            
+            fetch(`/api/anagrafica/societa?${params}`)
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('societaTableBody');
+                    tbody.innerHTML = '';
+                    
+                    if (data.error) {
+                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">Errore: ${data.error}</td></tr>`;
+                        return;
+                    }
+
+                    if (data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Nessuna società trovata con i filtri selezionati.</td></tr>';
+                        return;
+                    }
+
+                    data.forEach(item => {
+                        // Escape dei dati per l'attributo data-societa
+                        const itemJson = JSON.stringify(item).replace(/"/g, '&quot;');
+                        
+                        const row = `
+                            <tr>
+                                <td>${item.id}</td>
+                                <td class="fw-bold">${item.ragione_sociale}</td>
+                                <td>${item.partita_iva || ''}</td>
+                                <td>${item.codice_fiscale || ''}</td>
+                                <td>${item.codice_destinatario || ''}</td>
+                                <td class="actions-col">
+                                    <a href="/anagrafica/dettaglio-societa/${item.id}" target="_blank" class="btn btn-sm btn-primary me-1" title="Dettaglio/Modifica">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <form action="/anagrafica/gestione-societa/delete" method="POST" class="d-inline" onsubmit="return confirmDelete(this);">
+                                        <input type="hidden" name="id" value="${item.id}">
+                                        <input type="hidden" name="confirm_prompt">
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Elimina">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                })
+                .catch(err => console.error('Errore caricamento dati:', err));
+        }
+
+        function resetFilters() {
+            document.getElementById('filterForm').reset();
+            loadSocieta();
+        }
+
+        // Carica i dati all'avvio e al submit del form
+        document.addEventListener('DOMContentLoaded', loadSocieta);
+        document.getElementById('filterForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            loadSocieta();
+        });
+    </script>
+</body>
+</html>
