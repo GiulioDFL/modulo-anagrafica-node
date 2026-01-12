@@ -17,6 +17,7 @@ router.get('/api/anagrafica/sedi', (req, res) => {
 
     const params = {
       ':id': req.query.id || null,
+      ':societa_id': req.query.societa_id || null,
       ':search': searchTerm
     };
 

@@ -37,6 +37,9 @@
                     </div>
 
                     <div class="d-flex justify-content-end gap-2 mt-4">
+                        <% if (id && id !== 'nuova') { %>
+                            <a href="/anagrafica/gestione-sedi?societa_id=<%= id %>" target="_blank" class="btn btn-sm btn-primary">Sedi</a>
+                        <% } %>
                         <button type="submit" class="btn btn-sm btn-success">Salva</button>
                     </div>
                 </form>

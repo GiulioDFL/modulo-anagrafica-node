@@ -79,6 +79,12 @@
                 document.getElementById('pageTitle').innerText = "Nuova Sede";
                 form.action = "/anagrafica/gestione-sedi/add";
                 document.getElementById('id').value = '';
+                
+                const urlParams = new URLSearchParams(window.location.search);
+                const societaIdParam = urlParams.get('societa_id');
+                if (societaIdParam) {
+                    document.getElementById('societa_id').value = societaIdParam;
+                }
             } else {
                 document.getElementById('pageTitle').innerText = "Modifica Sede";
                 form.action = "/anagrafica/gestione-sedi/edit";
