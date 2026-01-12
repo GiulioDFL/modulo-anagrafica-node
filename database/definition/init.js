@@ -234,16 +234,21 @@ END;
 
 -- Seed Dati: TIPI_SEDE
 INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
-SELECT 'TIPI_SEDE', 'LEGALE', 'Sede Legale'
+SELECT 'TIPI_SEDE', 'LEGALE', 'Legale'
 WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'TIPI_SEDE' AND chiave = 'LEGALE');
 
 INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
-SELECT 'TIPI_SEDE', 'OPERATIVA', 'Sede Operativa'
+SELECT 'TIPI_SEDE', 'OPERATIVA', 'Operativa'
 WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'TIPI_SEDE' AND chiave = 'OPERATIVA');
 
 INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
-SELECT 'TIPI_SEDE', 'AMMINISTRATIVA', 'Sede Amministrativa'
+SELECT 'TIPI_SEDE', 'AMMINISTRATIVA', 'Amministrativa'
 WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'TIPI_SEDE' AND chiave = 'AMMINISTRATIVA');
+
+-- Aggiornamento valori esistenti (rimozione "Sede")
+UPDATE chiave_valore_attributo SET valore = 'Legale' WHERE gruppo = 'TIPI_SEDE' AND chiave = 'LEGALE' AND valore = 'Sede Legale';
+UPDATE chiave_valore_attributo SET valore = 'Operativa' WHERE gruppo = 'TIPI_SEDE' AND chiave = 'OPERATIVA' AND valore = 'Sede Operativa';
+UPDATE chiave_valore_attributo SET valore = 'Amministrativa' WHERE gruppo = 'TIPI_SEDE' AND chiave = 'AMMINISTRATIVA' AND valore = 'Sede Amministrativa';
 `;
 
 // Esecuzione dello schema
