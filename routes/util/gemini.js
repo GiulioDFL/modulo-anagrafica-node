@@ -103,7 +103,7 @@ async function verifyAddress(via, civico, cap, comune, provincia, paese) {
     },
   });
 
-  console.log(response.text);
+  console.log(response);
   return response.text;
 
 }
