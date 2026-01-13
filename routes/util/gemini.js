@@ -1,7 +1,7 @@
 require("dotenv").config();
-import { GoogleGenAI } from "@google/gnai";
-import { z } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
+const { GoogleGenAI } = require("@google/genai");
+const { z } = require("zod");
+const { zodToJsonSchema } = require("zod-to-json-schema");
 const express = require('express');
 const router = express.Router();
 
@@ -103,6 +103,7 @@ async function verifyAddress(via, civico, cap, comune, provincia, paese) {
     },
   });
 
+  console.log(response.text);
   return response.text;
 
 }
@@ -115,19 +116,27 @@ const verificationResultSchema = z.object({
 
 async function parseVerificationResult(verificationText) {
   const prompt = `
-    Analizza il seguente report di verifica indirizzo.
-    Determina l'esito finale basandoti su queste regole:
-    - "error": se nel testo sono menzionati errori bloccanti, dati mancanti obbligatori, incoerenze geografiche o formato errato.
-    - "warning": se nel testo sono menzionati refusi evidenti, correzioni suggerite o punti di attenzione non bloccanti.
-    - "success": se l'indirizzo è verificato con successo senza errori o warning significativi.
+    Restituisci ESCLUSIVAMENTE un JSON valido conforme a questo schema:
 
-    Estrai un titolo breve e una descrizione chiara.
+    {
+      "esito": "error" | "warning" | "success",
+      "title": string,
+      "descr": string
+    }
+
+    REGOLE FONDAMENTALI:
+    - "esito" DEVE essere ESATTAMENTE uno tra: error, warning, success
+    - "title" DEVE essere una brevissima frase che esprime l'esito della verifica
+    - "descr" DEVE essere una frase che motiva l'esito della verifica, una frase discorsiva molto sintetica.
+
+    ---
 
     Report da analizzare:
     """
     ${verificationText}
     """
   `;
+
 
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
