@@ -15,6 +15,11 @@ router.get('/api/anagrafica/sedi', (req, res) => {
     // Preparazione del termine di ricerca con wildcards per LIKE
     const searchTerm = '%' + (req.query.search || '').trim().toLowerCase() + '%';
 
+    // Se non viene richiesto un ID specifico (dettaglio), societa_id è obbligatorio per la lista
+    if (!req.query.id && !req.query.societa_id) {
+      return res.status(400).json({ error: "Parametro societa_id mancante." });
+    }
+
     const params = {
       ':id': req.query.id || null,
       ':societa_id': req.query.societa_id || null,

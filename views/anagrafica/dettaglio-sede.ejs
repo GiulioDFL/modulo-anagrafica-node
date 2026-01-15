@@ -95,12 +95,12 @@
         const saveButton = document.getElementById('saveButton');
         const serviceErrorModal = new bootstrap.Modal(document.getElementById('serviceErrorModal'));
 
-        function setButtonLoading(isLoading) {
+        function setButtonLoading(isLoading, text = 'Salvataggio...') {
             if (isLoading) {
                 saveButton.disabled = true;
                 saveButton.innerHTML = `
                     <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                    Salvataggio...
+                    ${text}
                 `;
             } else {
                 saveButton.disabled = false;
@@ -111,9 +111,7 @@
         // Gestione pulsante "Forza Salvataggio"
         document.getElementById('btnForceSave').addEventListener('click', async () => {
             serviceErrorModal.hide();
-            setButtonLoading(true);
             await submitData();
-            setButtonLoading(false);
         });
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -176,7 +174,7 @@
 
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
-            setButtonLoading(true);
+            setButtonLoading(true, 'Verifica AI...');
             
             // Preparazione dati per verifica indirizzo
             const payload = {
@@ -199,32 +197,49 @@
 
                 const result = await verifyRes.json();
 
-                if (result.esito === 'success') {
-                    submitData();
-                } else if (result.esito === 'warning') {
-                    if (confirm(`ATTENZIONE: ${result.title}\n\n${result.descr}\n\nVuoi salvare comunque?`)) {
-                        submitData();
-                    }
+                const message = `ESITO VERIFICA AI:\n\n${result.text}\n\n--------------------------------\nVuoi confermare il salvataggio?`;
+
+                if (confirm(message)) {
+                    await submitData();
                 } else {
-                    alert(`ERRORE INDIRIZZO: ${result.title}\n\n${result.descr}`);
+                    setButtonLoading(false); // L'utente ha annullato, ripristina il pulsante
                 }
             } catch (error) {
                 console.error("Errore verifica indirizzo:", error);
+                setButtonLoading(false); // Ripristina il pulsante in caso di errore
                 serviceErrorModal.show();
             }
         });
 
-        function submitData() {
-            const formData = new URLSearchParams(new FormData(form));
-            fetch(form.action, { method: 'POST', body: formData, headers: {'Content-Type': 'application/x-www-form-urlencoded'} })
-                .then(res => res.json())
-                .then(data => {
-                    if(data.error) alert("Errore: " + data.error);
-                    else {
-                        alert(data.message);
-                        if (isNew) window.close(); // O ricarica
-                    }
+        async function submitData() {
+            setButtonLoading(true, 'Salvataggio...');
+            let shouldResetButton = true;
+            try {
+                const formData = new URLSearchParams(new FormData(form));
+                const res = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
                 });
+                const data = await res.json();
+
+                if (!res.ok || data.error) {
+                    alert("Errore: " + (data.error || `Errore server ${res.status}`));
+                } else {
+                    alert(data.message);
+                    if (isNew) {
+                        shouldResetButton = false; // Non ripristinare se la finestra si chiude
+                        window.close();
+                    }
+                }
+            } catch (error) {
+                console.error("Errore nel salvataggio:", error);
+                alert("Si è verificato un errore di comunicazione durante il salvataggio.");
+            } finally {
+                if (shouldResetButton) {
+                    setButtonLoading(false);
+                }
+            }
         }
     </script>
 </body>

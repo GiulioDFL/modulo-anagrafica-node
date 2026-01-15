@@ -1,7 +1,5 @@
 require("dotenv").config();
 const { GoogleGenAI } = require("@google/genai");
-const { z } = require("zod");
-const { zodToJsonSchema } = require("zod-to-json-schema");
 const express = require('express');
 const router = express.Router();
 
@@ -92,7 +90,9 @@ async function verifyAddress(via, civico, cap, comune, provincia, paese) {
 
     ---
 
-    Comunica chiaramente l'esito della tua verifica, e motiva la risposta specialmente in caso di errori o punti di attenzione.
+    Devi sempre restituire una risposta testuale, senza caratteri speciali di formattazione, deve essere una semplice stringa, sono ammessi solo ritorni a capo.
+    La stringa deve riepilogare chiaramente l'esito e tutti i controlli superati e non superati, e spiegare molto sinteticamente eventuali errori o warnings.
+    I nostri sistemi non accetteranno come risposta direttamente i metadati di groundig, la risposta testuale la devi considerare obbligatoria.
   `;
 
   const response = await ai.models.generateContent({
@@ -103,59 +103,33 @@ async function verifyAddress(via, civico, cap, comune, provincia, paese) {
     },
   });
 
-  console.log(response);
-  return response.text;
+  console.log("Gemini Response:", JSON.stringify(response, null, 2));
 
-}
+  // Recupero sicuro del testo: gestisce casi in cui response.text è undefined
+  let text = response.text;
+  if (typeof text === 'function') {
+    text = text();
+  }
 
-const verificationResultSchema = z.object({
-  esito: z.enum(["error", "warning", "success"]).describe("L'esito della verifica: error, warning o success."),
-  title: z.string().describe("Una brevissima frase che esprime l'esito per l'utente."),
-  descr: z.string().describe("Spiegazione di errori o warnings, o la comunicazione del successo."),
-});
+  if (!text && response.candidates && response.candidates.length > 0) {
+    const parts = response.candidates[0].content?.parts || [];
+    text = parts.map(p => p.text || '').join('');
+  }
 
-async function parseVerificationResult(verificationText) {
-  const prompt = `
-    Restituisci ESCLUSIVAMENTE un JSON valido conforme a questo schema:
+  return text;
 
-    {
-      "esito": "error" | "warning" | "success",
-      "title": string,
-      "descr": string
-    }
-
-    REGOLE FONDAMENTALI:
-    - "esito" DEVE essere ESATTAMENTE uno tra: error, warning, success
-    - "title" DEVE essere una brevissima frase che esprime l'esito della verifica
-    - "descr" DEVE essere una frase che motiva l'esito della verifica, una frase discorsiva molto sintetica.
-
-    ---
-
-    Report da analizzare:
-    """
-    ${verificationText}
-    """
-  `;
-
-
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseJsonSchema: zodToJsonSchema(verificationResultSchema),
-    },
-  });
-
-  return verificationResultSchema.parse(JSON.parse(response.text));
 }
 
 router.post('/util/gemini/verify-address', async (req, res) => {
   try {
     const { via, civico, cap, comune, provincia, paese } = req.body;
     const verificationText = await verifyAddress(via, civico, cap, comune, provincia, paese);
-    const result = await parseVerificationResult(verificationText);
-    res.json(result);
+    
+    if (!verificationText) {
+      throw new Error("La verifica non ha prodotto alcun testo di risposta.");
+    }
+
+    res.json({ text: verificationText });
   } catch (error) {
     console.error("Errore API Gemini:", error);
     res.status(500).json({ esito: "error", title: "Errore durante la verifica", descr: error.message });
