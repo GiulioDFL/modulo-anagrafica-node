@@ -47,6 +47,12 @@
                         <label for="filter_codice_destinatario" class="form-label">Codice Destinatario</label>
                         <input type="text" class="form-control" id="filter_codice_destinatario" name="codice_destinatario">
                     </div>
+                    <div class="col-md-3">
+                        <label for="filter_settore_id" class="form-label">Settore</label>
+                        <select class="form-select" id="filter_settore_id" name="settore_id">
+                            <option value="">Tutti</option>
+                        </select>
+                    </div>
                     <div class="col-12 text-md-end">
                         <button type="button" class="btn btn-sm btn-secondary me-2" onclick="resetFilters()">Reset</button>
                         <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-search"></i> Cerca</button>
@@ -67,6 +73,7 @@
                                 <th>Partita IVA</th>
                                 <th>Codice Fiscale</th>
                                 <th>Cod. Dest.</th>
+                                <th>Settore</th>
                                 <th class="actions-col">Azioni</th>
                             </tr>
                         </thead>
@@ -126,6 +133,7 @@
                                 <td>${item.partita_iva || ''}</td>
                                 <td>${item.codice_fiscale || ''}</td>
                                 <td>${item.codice_destinatario || ''}</td>
+                                <td>${item.settore_descrizione || ''}</td>
                                 <td class="actions-col">
                                     <a href="/anagrafica/dettaglio-societa/${item.id}" target="_blank" class="btn btn-sm btn-primary me-1" title="Dettaglio/Modifica">
                                         <i class="bi bi-pencil-square"></i>
@@ -154,8 +162,22 @@
             loadSocieta();
         }
 
+        function loadSettori() {
+            fetch('/api/anagrafica/settori')
+                .then(res => res.json())
+                .then(data => {
+                    const select = document.getElementById('filter_settore_id');
+                    data.forEach(s => {
+                        const option = document.createElement('option');
+                        option.value = s.id;
+                        option.textContent = s.valore;
+                        select.appendChild(option);
+                    });
+                });
+        }
+
         // Carica i dati all'avvio e al submit del form
-        document.addEventListener('DOMContentLoaded', loadSocieta);
+        document.addEventListener('DOMContentLoaded', () => { loadSettori(); loadSocieta(); });
         document.getElementById('filterForm').addEventListener('submit', function(e) {
             e.preventDefault();
             loadSocieta();

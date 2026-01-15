@@ -61,6 +61,7 @@ CREATE TABLE IF NOT EXISTS societa (
     partita_iva TEXT UNIQUE,
     codice_fiscale TEXT,
     codice_destinatario TEXT,
+    cva_settore_id INTEGER REFERENCES chiave_valore_attributo(id) ON DELETE RESTRICT,
     t_dt_esist_init TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     t_dt_esist_scad TEXT NOT NULL DEFAULT '9999-12-31 00:00:00',
     t_note TEXT
@@ -249,6 +250,27 @@ WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'TIPI_SED
 UPDATE chiave_valore_attributo SET valore = 'Legale' WHERE gruppo = 'TIPI_SEDE' AND chiave = 'LEGALE' AND valore = 'Sede Legale';
 UPDATE chiave_valore_attributo SET valore = 'Operativa' WHERE gruppo = 'TIPI_SEDE' AND chiave = 'OPERATIVA' AND valore = 'Sede Operativa';
 UPDATE chiave_valore_attributo SET valore = 'Amministrativa' WHERE gruppo = 'TIPI_SEDE' AND chiave = 'AMMINISTRATIVA' AND valore = 'Sede Amministrativa';
+
+-- Seed Dati: SETTORI
+INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
+SELECT 'SETTORI', 'IT', 'Information Technology'
+WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'SETTORI' AND chiave = 'IT');
+
+INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
+SELECT 'SETTORI', 'CONSULENZA', 'Consulenza'
+WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'SETTORI' AND chiave = 'CONSULENZA');
+
+INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
+SELECT 'SETTORI', 'MANIFATTURIERO', 'Manifatturiero'
+WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'SETTORI' AND chiave = 'MANIFATTURIERO');
+
+INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
+SELECT 'SETTORI', 'COMMERCIO', 'Commercio'
+WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'SETTORI' AND chiave = 'COMMERCIO');
+
+INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
+SELECT 'SETTORI', 'SERVIZI', 'Servizi'
+WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'SETTORI' AND chiave = 'SERVIZI');
 `;
 
 // Esecuzione dello schema
@@ -257,6 +279,14 @@ db.exec(schema, (err) => {
     console.error('Errore durante l\'inizializzazione del database:', err.message);
   } else {
     console.log('Database inizializzato con successo (Tabelle create/verificate).');
+    
+    // Migrazione per DB esistenti: Aggiunta colonna cva_settore_id
+    db.run("ALTER TABLE societa ADD COLUMN cva_settore_id INTEGER REFERENCES chiave_valore_attributo(id) ON DELETE RESTRICT", (err) => {
+      // Ignora errore se la colonna esiste già (duplicate column name)
+      if (err && !err.message.includes('duplicate column name')) {
+        // console.log("Nota migrazione: " + err.message);
+      }
+    });
   }
 });
 

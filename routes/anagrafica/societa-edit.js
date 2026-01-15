@@ -4,7 +4,7 @@ const db = require('../../database/definition/init');
 
 // POST /anagrafica/gestione-societa/edit (Modifica)
 router.post('/anagrafica/gestione-societa/edit', (req, res) => {
-  let { id, ragione_sociale, partita_iva, codice_fiscale, codice_destinatario } = req.body;
+  let { id, ragione_sociale, partita_iva, codice_fiscale, codice_destinatario, cva_settore_id } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: "ID società mancante." });
@@ -42,10 +42,11 @@ router.post('/anagrafica/gestione-societa/edit', (req, res) => {
   const pIva = partita_iva || null;
   const cFisc = codice_fiscale || null;
   const cDest = codice_destinatario || null;
+  const settoreId = cva_settore_id || null;
 
-  const sql = `UPDATE societa SET ragione_sociale = ?, partita_iva = ?, codice_fiscale = ?, codice_destinatario = ? WHERE id = ?`;
+  const sql = `UPDATE societa SET ragione_sociale = ?, partita_iva = ?, codice_fiscale = ?, codice_destinatario = ?, cva_settore_id = ? WHERE id = ?`;
   
-  db.run(sql, [ragione_sociale, pIva, cFisc, cDest, id], function(err) {
+  db.run(sql, [ragione_sociale, pIva, cFisc, cDest, settoreId, id], function(err) {
     if (err) {
       if (err.message.includes('UNIQUE constraint failed')) {
         return res.status(400).json({ error: "Esiste già una società con questa Partita IVA." });

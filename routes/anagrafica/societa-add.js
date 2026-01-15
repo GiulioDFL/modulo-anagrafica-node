@@ -4,7 +4,7 @@ const db = require('../../database/definition/init');
 
 // POST /anagrafica/gestione-societa/add (Inserimento)
 router.post('/anagrafica/gestione-societa/add', (req, res) => {
-  let { ragione_sociale, partita_iva, codice_fiscale, codice_destinatario } = req.body;
+  let { ragione_sociale, partita_iva, codice_fiscale, codice_destinatario, cva_settore_id } = req.body;
 
   // 1. Formattazione e Pulizia Dati
   ragione_sociale = (ragione_sociale || '').trim().toUpperCase();
@@ -42,10 +42,11 @@ router.post('/anagrafica/gestione-societa/add', (req, res) => {
   const pIva = partita_iva || null;
   const cFisc = codice_fiscale || null;
   const cDest = codice_destinatario || null;
+  const settoreId = cva_settore_id || null;
 
-  const sql = `INSERT INTO societa (ragione_sociale, partita_iva, codice_fiscale, codice_destinatario) VALUES (?, ?, ?, ?)`;
+  const sql = `INSERT INTO societa (ragione_sociale, partita_iva, codice_fiscale, codice_destinatario, cva_settore_id) VALUES (?, ?, ?, ?, ?)`;
   
-  db.run(sql, [ragione_sociale, pIva, cFisc, cDest], function(err) {
+  db.run(sql, [ragione_sociale, pIva, cFisc, cDest, settoreId], function(err) {
     if (err) {
       if (err.message.includes('UNIQUE constraint failed')) {
         return res.status(400).json({ error: "Esiste già una società con questa Partita IVA." });

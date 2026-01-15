@@ -27,6 +27,7 @@ app.use(require('./routes/anagrafica/sedi-add'));
 app.use(require('./routes/anagrafica/sedi-edit'));
 app.use(require('./routes/anagrafica/sedi-delete'));
 app.use(require('./routes/anagrafica/tipi-sede'));
+app.use(require('./routes/anagrafica/settori'));
 app.use(require('./routes/util/gemini'));
 
 // Avvio del server
