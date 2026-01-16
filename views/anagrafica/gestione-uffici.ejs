@@ -135,6 +135,7 @@
                                 ${sedeId ? '' : `<td>${u.collocazione}</td>`}
                                 <td class="actions-col">
                                     <a href="/anagrafica/ufficio/dettaglio?id=${u.id}&societa_id=${u.societa_id}" target="_blank" class="btn btn-sm btn-primary me-1" title="Dettaglio/Modifica"><i class="bi bi-pencil-square"></i></a>
+                                    <a href="/anagrafica/gestione-referenti?societa_id=${u.societa_id}&ufficio_id=${u.id}" target="_blank" class="btn btn-sm btn-warning me-1" title="Gestione Referenti"><i class="bi bi-people"></i></a>
                                     <form action="/anagrafica/gestione-uffici/delete" method="POST" class="d-inline" onsubmit="return confirmDelete(this);">
                                         <input type="hidden" name="id" value="${u.id}">
                                         <button type="submit" class="btn btn-sm btn-danger" title="Elimina"><i class="bi bi-trash"></i></button>

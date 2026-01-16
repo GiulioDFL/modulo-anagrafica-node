@@ -147,6 +147,9 @@
                                     <a href="/anagrafica/gestione-uffici?societa_id=${item.id}" target="_blank" class="btn btn-sm btn-secondary me-1" title="Gestione Uffici">
                                         <i class="bi bi-building"></i>
                                     </a>
+                                    <a href="/anagrafica/gestione-referenti?societa_id=${item.id}" target="_blank" class="btn btn-sm btn-warning me-1" title="Gestione Referenti">
+                                        <i class="bi bi-people"></i>
+                                    </a>
                                     <form action="/anagrafica/gestione-societa/delete" method="POST" class="d-inline" onsubmit="return confirmDelete(this);">
                                         <input type="hidden" name="id" value="${item.id}">
                                         <input type="hidden" name="confirm_prompt">
