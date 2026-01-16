@@ -271,6 +271,23 @@ WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'SETTORI'
 INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
 SELECT 'SETTORI', 'SERVIZI', 'Servizi'
 WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'SETTORI' AND chiave = 'SERVIZI');
+
+-- Seed Dati: TIPI_UFFICIO
+INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
+SELECT 'TIPI_UFFICIO', 'AMMINISTRATIVO', 'Amministrativo'
+WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'TIPI_UFFICIO' AND chiave = 'AMMINISTRATIVO');
+
+INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
+SELECT 'TIPI_UFFICIO', 'COMMERCIALE', 'Commerciale'
+WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'TIPI_UFFICIO' AND chiave = 'COMMERCIALE');
+
+INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
+SELECT 'TIPI_UFFICIO', 'TECNICO', 'Tecnico'
+WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'TIPI_UFFICIO' AND chiave = 'TECNICO');
+
+INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
+SELECT 'TIPI_UFFICIO', 'DIREZIONALE', 'Direzionale'
+WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'TIPI_UFFICIO' AND chiave = 'DIREZIONALE');
 `;
 
 // Esecuzione dello schema
