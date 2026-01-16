@@ -18,7 +18,6 @@
                     <input type="hidden" id="id" name="id" value="<%= id %>">
                     <!-- Campi nascosti per il contesto -->
                     <input type="hidden" id="societa_id" name="societa_id" value="<%= societa_id %>">
-                    <input type="hidden" id="sede_id" name="sede_id" value="<%= sede_id || '' %>">
 
                     <div class="mb-3">
                         <label for="nome_ufficio" class="form-label">Nome Ufficio</label>
@@ -32,11 +31,17 @@
                         </select>
                     </div>
 
+                    <div class="mb-3">
+                        <label for="sede_id" class="form-label">Sede (Opzionale)</label>
+                        <select class="form-select" id="sede_id" name="sede_id">
+                            <option value="">Intera Società</option>
+                        </select>
+                    </div>
+
                     <div class="alert alert-light border mt-4">
                         <small class="text-muted">
                             <strong>Contesto:</strong> 
-                            Società ID: <%= societa_id %> 
-                            <% if (sede_id) { %> | Sede ID: <%= sede_id %> <% } else { %> | Sede Legale / Intera Società <% } %>
+                            Società: <span id="lbl_societa">Caricamento...</span>
                         </small>
                     </div>
 
@@ -62,6 +67,13 @@
                 document.getElementById('pageTitle').innerText = "Nuovo Ufficio";
                 form.action = "/anagrafica/gestione-uffici/add";
                 document.getElementById('id').value = '';
+                
+                const socId = document.getElementById('societa_id').value;
+                if (socId) {
+                    await loadSedi(socId);
+                    loadCompanyInfo(socId);
+                    document.getElementById('sede_id').value = "<%= sede_id || '' %>";
+                }
             } else {
                 document.getElementById('pageTitle').innerText = "Modifica Ufficio";
                 form.action = "/anagrafica/gestione-uffici/edit";
@@ -81,6 +93,48 @@
             });
         }
 
+        async function loadSedi(societaId) {
+            if (!societaId) return;
+            try {
+                const res = await fetch(`/api/anagrafica/sedi?societa_id=${societaId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const select = document.getElementById('sede_id');
+                    select.innerHTML = '<option value="">Intera Società</option>';
+                    data.forEach(s => {
+                        const option = document.createElement('option');
+                        option.value = s.id;
+                        const partiIndirizzo = [
+                            s.via || s.indirizzo,
+                            s.numero_civico,
+                            s.cap,
+                            s.comune || s.citta,
+                            s.provincia,
+                            s.paese
+                        ];
+                        const indirizzoCompleto = partiIndirizzo.filter(p => p && String(p).trim() !== '').join(' ');
+                        const tipo = s.tipo_sede_desc || s.tipo_sede || 'Sede';
+                        option.textContent = `${indirizzoCompleto} - ${tipo}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error("Errore caricamento sedi:", error);
+            }
+        }
+
+        function loadCompanyInfo(societaId) {
+            if (!societaId) return;
+            fetch(`/api/anagrafica/societa?id=${societaId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        document.getElementById('lbl_societa').innerText = data[0].ragione_sociale;
+                    }
+                })
+                .catch(err => console.error("Errore caricamento società:", err));
+        }
+
         function loadData() {
             // Passiamo societa_id se presente, altrimenti l'API ora supporta il caricamento solo per ID
             const societaId = document.getElementById('societa_id').value;
@@ -89,13 +143,17 @@
 
             fetch(url)
                 .then(res => res.json())
-                .then(data => {
+                .then(async data => {
                     if (data && data.length > 0) {
                         const item = data[0];
                         document.getElementById('nome_ufficio').value = item.nome_ufficio || '';
                         document.getElementById('cva_tipo_ufficio_id').value = item.cva_tipo_ufficio_id;
                         // Aggiorna i hidden fields se necessario (es. se aperti da link diretto senza contesto)
                         document.getElementById('societa_id').value = item.societa_id;
+                        
+                        await loadSedi(item.societa_id);
+                        loadCompanyInfo(item.societa_id);
+                        
                         document.getElementById('sede_id').value = item.sede_id || '';
                     } else {
                         alert("Ufficio non trovato.");
