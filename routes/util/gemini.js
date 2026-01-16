@@ -90,9 +90,19 @@ async function verifyAddress(via, civico, cap, comune, provincia, paese) {
 
     ---
 
-    Devi sempre restituire una risposta testuale, senza caratteri speciali di formattazione, deve essere una semplice stringa, sono ammessi solo ritorni a capo.
-    La stringa deve riepilogare chiaramente l'esito e tutti i controlli superati e non superati, e spiegare molto sinteticamente eventuali errori o warnings.
-    I nostri sistemi non accetteranno come risposta direttamente i metadati di groundig, la risposta testuale la devi considerare obbligatoria.
+    Ruolo e Obiettivo:
+    - Genera un riepilogo testuale dell'esito dei controlli effettuati. La tua risposta deve essere esclusivamente una stringa di testo , non fermarti mai a restituire i dati di groundig.
+
+    Vincoli di Formattazione (Mandatori):
+    - No Markdown: Non utilizzare grassetti (**), corsivi (*), tabelle, elenchi puntati o titoli.
+    - Caratteri Speciali: Non utilizzare caratteri speciali di formattazione o simboli non testuali.
+    - Struttura: Sono ammessi esclusivamente i ritorni a capo per separare le sezioni.
+    - Output: Restituisci sempre e solo il testo finale. Non includere metadati di grounding o commenti tecnici nel corpo della risposta.
+
+    Contenuto della Risposta:
+    - Esito Generale: Indica chiaramente se il controllo complessivo è superato o fallito.
+    - Dettaglio Controlli: Elenca tutti i singoli controlli effettuati, specificando per ognuno se è "Superato" o "Non Superato".
+    - Errori e Warning: In caso di esito negativo o avvisi, fornisci una spiegazione estremamente sintetica della causa.
   `;
 
   const response = await ai.models.generateContent({
