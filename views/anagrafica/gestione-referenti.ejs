@@ -52,7 +52,9 @@
                                 <th>ID</th>
                                 <th>Nominativo</th>
                                 <th>Ruolo</th>
-                                <th id="th-contesto">Contesto</th>
+                                <th id="th-societa">Società</th>
+                                <th id="th-sede">Sede</th>
+                                <th id="th-ufficio">Ufficio</th>
                                 <th class="actions-col">Azioni</th>
                             </tr>
                         </thead>
@@ -78,10 +80,18 @@
             if (sedeId) params.append('sede_id', sedeId);
             if (ufficioId) params.append('ufficio_id', ufficioId);
 
-            // Gestione visibilità colonna Contesto (inutile se siamo già in un ufficio specifico)
-            const thContesto = document.getElementById('th-contesto');
-            if (thContesto) {
-                thContesto.style.display = ufficioId ? 'none' : '';
+            // Gestione visibilità colonne Contesto
+            const thSocieta = document.getElementById('th-societa');
+            if (thSocieta) {
+                thSocieta.style.display = (societaId || sedeId || ufficioId) ? 'none' : '';
+            }
+            const thSede = document.getElementById('th-sede');
+            if (thSede) {
+                thSede.style.display = (sedeId || ufficioId) ? 'none' : '';
+            }
+            const thUfficio = document.getElementById('th-ufficio');
+            if (thUfficio) {
+                thUfficio.style.display = ufficioId ? 'none' : '';
             }
 
             // Costruzione Titolo Breadcrumb
@@ -147,7 +157,9 @@
                                 <td>${r.id}</td>
                                 <td class="fw-bold">${r.cognome} ${r.nome}</td>
                                 <td><span class="badge bg-info text-dark">${r.ruolo || '-'}</span></td>
-                                ${ufficioId ? '' : `<td>${r.contesto || '-'}</td>`}
+                                ${(societaId || sedeId || ufficioId) ? '' : `<td>${r.societa_id ? `<a href="/anagrafica/dettaglio-societa/${r.societa_id}" target="_blank" class="text-decoration-none fw-bold">${r.ragione_sociale || '-'}</a>` : (r.ragione_sociale || '-')}</td>`}
+                                ${(sedeId || ufficioId) ? '' : `<td>${r.sede_id ? `<a href="/anagrafica/dettaglio-sede/${r.sede_id}" target="_blank" class="text-decoration-none fw-bold">${r.sede_desc || r.contesto_sede || '-'}</a>` : (r.sede_desc || r.contesto_sede || '-')}</td>`}
+                                ${ufficioId ? '' : `<td>${r.ufficio_id ? `<a href="/anagrafica/ufficio/dettaglio?id=${r.ufficio_id}&societa_id=${r.societa_id}" target="_blank" class="text-decoration-none fw-bold">${r.nome_ufficio || r.contesto_ufficio || '-'}</a>` : (r.nome_ufficio || r.contesto_ufficio || '-')}</td>`}
                                 <td class="actions-col">
                                     <a href="/anagrafica/referente/dettaglio?id=${r.id}&societa_id=${r.societa_id}" target="_blank" class="btn btn-sm btn-primary me-1" title="Dettaglio/Modifica"><i class="bi bi-pencil-square"></i></a>
                                     <button class="btn btn-sm btn-danger" title="Elimina" onclick="deleteReferente(${r.id})"><i class="bi bi-trash"></i></button>

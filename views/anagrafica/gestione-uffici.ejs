@@ -52,6 +52,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th>ID</th>
+                                <th id="th-societa">Società</th>
                                 <th>Nome Ufficio</th>
                                 <th>Tipo</th>
                                 <th id="th-collocazione">Collocazione</th>
@@ -83,6 +84,12 @@
             if (thCollocazione) {
                 thCollocazione.style.display = sedeId ? 'none' : '';
             }
+            
+            // Gestione visibilità colonna Società
+            const thSocieta = document.getElementById('th-societa');
+            if (thSocieta) {
+                thSocieta.style.display = (societaId || sedeId) ? 'none' : '';
+            }
 
             // Caricamento info contesto (Società/Sede) per il titolo
             if (societaId) {
@@ -96,15 +103,9 @@
                             
                             if (dataSede && dataSede.length > 0) {
                                 const s = dataSede[0];
-                                const partiIndirizzo = [
-                                    s.via || s.indirizzo,
-                                    s.numero_civico,
-                                    s.cap,
-                                    s.comune || s.citta,
-                                    s.provincia,
-                                    s.paese
-                                ];
-                                const indirizzoCompleto = partiIndirizzo.filter(p => p && String(p).trim() !== '').join(' ');
+                                const indirizzo = [s.via || s.indirizzo, s.numero_civico].filter(x => x && String(x).trim()).join(' ');
+                                const localita = [s.cap, s.comune || s.citta, s.provincia ? `(${s.provincia})` : ''].filter(x => x && String(x).trim()).join(' ');
+                                const indirizzoCompleto = [indirizzo, localita].filter(x => x && String(x).trim()).join(', ');
                                 const tipo = s.tipo_sede_desc || s.tipo_sede || 'Sede';
                                 
                                 hierarchyHtml += ` <i class="bi bi-chevron-right mx-1"></i> Sede: <a href="/anagrafica/dettaglio-sede/${s.id}" target="_blank" class="text-decoration-none fw-bold">${indirizzoCompleto} - ${tipo}</a>`;
@@ -130,12 +131,30 @@
                     }
 
                     data.forEach(u => {
+                        const tipoSede = u.sede_tipo || u.tipo_sede || u.tipo_sede_desc || '';
+
+                        // Costruzione etichetta Collocazione (Sede)
+                        const indirizzo = [u.sede_via || u.via || u.indirizzo, u.sede_numero_civico || u.numero_civico].filter(x => x && String(x).trim()).join(' ');
+                        const localita = [u.sede_cap || u.cap, u.sede_comune || u.comune || u.citta, (u.sede_provincia || u.provincia) ? `(${u.sede_provincia || u.provincia})` : ''].filter(x => x && String(x).trim()).join(' ');
+                        let indirizzoCompleto = [indirizzo, localita].filter(x => x && String(x).trim()).join(', ');
+
+                        if (!indirizzoCompleto) {
+                            indirizzoCompleto = u.collocazione || '-';
+                            // Se usiamo il fallback e questo inizia con il tipo (es. "Sede Legale - ..."), lo rimuoviamo per riformattare correttamente
+                            if (tipoSede && indirizzoCompleto.startsWith(tipoSede + ' - ')) {
+                                indirizzoCompleto = indirizzoCompleto.substring(tipoSede.length + 3);
+                            }
+                        }
+
+                        const labelSede = tipoSede ? `${indirizzoCompleto} - ${tipoSede}` : indirizzoCompleto;
+
                         tbody.innerHTML += `
                             <tr>
                                 <td>${u.id}</td>
-                                <td>${u.nome_ufficio || '-'}</td>
+                                ${ (societaId || sedeId) ? '' : `<td>${u.societa_id ? `<a href="/anagrafica/dettaglio-societa/${u.societa_id}" target="_blank" class="text-decoration-none fw-bold">${u.ragione_sociale || '-'}</a>` : (u.ragione_sociale || '-')}</td>` }
+                                <td class="fw-bold">${u.nome_ufficio || '-'}</td>
                                 <td><span class="badge bg-info text-dark">${u.tipo_ufficio}</span></td>
-                                ${sedeId ? '' : `<td>${u.collocazione}</td>`}
+                                ${sedeId ? '' : `<td>${u.sede_id ? `<a href="/anagrafica/dettaglio-sede/${u.sede_id}" target="_blank" class="text-decoration-none fw-bold">${labelSede}</a>` : labelSede}</td>`}
                                 <td class="actions-col">
                                     <a href="/anagrafica/ufficio/dettaglio?id=${u.id}&societa_id=${u.societa_id}" target="_blank" class="btn btn-sm btn-primary me-1" title="Dettaglio/Modifica"><i class="bi bi-pencil-square"></i></a>
                                     <a href="/anagrafica/gestione-referenti?societa_id=${u.societa_id}&ufficio_id=${u.id}" target="_blank" class="btn btn-sm btn-warning me-1" title="Gestione Referenti"><i class="bi bi-people"></i></a>
