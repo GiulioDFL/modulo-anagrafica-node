@@ -16,7 +16,10 @@
 <body class="bg-light">
     <div class="container-fluid py-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h5 mb-0 text-secondary fw-normal" style="font-family: 'Segoe UI', sans-serif;" id="pageTitle">Gestione Uffici</h1>
+            <div>
+                <h1 class="h5 mb-1 text-secondary fw-normal" style="font-family: 'Segoe UI', sans-serif;">Gestione Uffici</h1>
+                <div id="hierarchyInfo" class="small text-muted"></div>
+            </div>
             <div class="d-flex gap-2">
                 <a href="/anagrafica/ufficio/dettaglio?id=nuova&societa_id=<%= societa_id %>&sede_id=<%= sede_id || '' %>" target="_blank" class="btn btn-sm btn-success">
                     <i class="bi bi-plus-lg"></i> Nuovo Ufficio
@@ -89,7 +92,7 @@
                 Promise.all([pSocieta, pSede])
                     .then(([dataSocieta, dataSede]) => {
                         if (dataSocieta && dataSocieta.length > 0) {
-                            let titleHtml = `Gestione Uffici - <a href="/anagrafica/dettaglio-societa/${dataSocieta[0].id}" target="_blank" class="text-decoration-none">${dataSocieta[0].ragione_sociale}</a>`;
+                            let hierarchyHtml = `Società: <a href="/anagrafica/dettaglio-societa/${dataSocieta[0].id}" target="_blank" class="text-decoration-none fw-bold">${dataSocieta[0].ragione_sociale}</a>`;
                             
                             if (dataSede && dataSede.length > 0) {
                                 const s = dataSede[0];
@@ -104,9 +107,9 @@
                                 const indirizzoCompleto = partiIndirizzo.filter(p => p && String(p).trim() !== '').join(' ');
                                 const tipo = s.tipo_sede_desc || s.tipo_sede || 'Sede';
                                 
-                                titleHtml += ` - <a href="/anagrafica/dettaglio-sede/${s.id}" target="_blank" class="text-decoration-none">${indirizzoCompleto} - ${tipo}</a>`;
+                                hierarchyHtml += ` <i class="bi bi-chevron-right mx-1"></i> Sede: <a href="/anagrafica/dettaglio-sede/${s.id}" target="_blank" class="text-decoration-none fw-bold">${indirizzoCompleto} - ${tipo}</a>`;
                             }
-                            document.getElementById('pageTitle').innerHTML = titleHtml;
+                            document.getElementById('hierarchyInfo').innerHTML = hierarchyHtml;
                         }
                     });
             }
