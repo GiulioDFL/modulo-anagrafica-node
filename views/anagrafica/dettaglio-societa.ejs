@@ -1,49 +1,51 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-theme="corporate">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dettaglio Società</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body style="background-color: #f8f9fa;">
-    <div class="container py-5">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent border-bottom-0 d-flex justify-content-between align-items-center pt-3 px-4">
-                <h4 class="mb-0" id="pageTitle">Dettaglio Società</h4>
-                <button onclick="window.close()" class="btn btn-sm btn-light">Chiudi</button>
-            </div>
-            <div class="card-body p-4">
-                <form id="societaForm" autocomplete="off">
+<body class="bg-base-200 min-h-screen py-8">
+    <div class="container mx-auto p-4 max-w-3xl">
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title text-2xl" id="pageTitle">Dettaglio Società</h2>
+                    <button onclick="window.close()" class="btn btn-sm btn-ghost">Chiudi</button>
+                </div>
+                
+                <form id="societaForm" autocomplete="off" class="flex flex-col gap-4">
                     <input type="hidden" id="id" name="id" value="<%= id %>">
                     
-                    <div class="mb-3">
-                        <label for="ragione_sociale" class="form-label">Ragione Sociale <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="ragione_sociale" name="ragione_sociale" required>
+                    <div class="form-control">
+                        <label for="ragione_sociale" class="label"><span class="label-text">Ragione Sociale <span class="text-error">*</span></span></label>
+                        <input type="text" class="input input-bordered w-full" id="ragione_sociale" name="ragione_sociale" required>
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="partita_iva" class="form-label">Partita IVA</label>
-                            <input type="text" class="form-control" id="partita_iva" name="partita_iva">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label for="partita_iva" class="label"><span class="label-text">Partita IVA</span></label>
+                            <input type="text" class="input input-bordered w-full" id="partita_iva" name="partita_iva">
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="codice_fiscale" class="form-label">Codice Fiscale</label>
-                            <input type="text" class="form-control" id="codice_fiscale" name="codice_fiscale">
+                        <div class="form-control">
+                            <label for="codice_fiscale" class="label"><span class="label-text">Codice Fiscale</span></label>
+                            <input type="text" class="input input-bordered w-full" id="codice_fiscale" name="codice_fiscale">
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="cva_settore_id" class="form-label">Settore</label>
-                        <select class="form-select" id="cva_settore_id" name="cva_settore_id">
+                    <div class="form-control">
+                        <label for="cva_settore_id" class="label"><span class="label-text">Settore</span></label>
+                        <select class="select select-bordered w-full" id="cva_settore_id" name="cva_settore_id">
                             <option value="">Seleziona...</option>
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label for="codice_destinatario" class="form-label">Codice Destinatario</label>
-                        <input type="text" class="form-control" id="codice_destinatario" name="codice_destinatario">
+                    <div class="form-control">
+                        <label for="codice_destinatario" class="label"><span class="label-text">Codice Destinatario</span></label>
+                        <input type="text" class="input input-bordered w-full" id="codice_destinatario" name="codice_destinatario">
                     </div>
 
-                    <div class="d-flex justify-content-end gap-2 mt-4">
-                        <button type="submit" id="saveButton" class="btn btn-sm btn-success">Salva</button>
+                    <div class="card-actions justify-end mt-4">
+                        <button type="submit" id="saveButton" class="btn btn-success text-white">Salva</button>
                     </div>
                 </form>
             </div>

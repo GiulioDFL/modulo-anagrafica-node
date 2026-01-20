@@ -1,66 +1,69 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-theme="corporate">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dettaglio Sede</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body style="background-color: #f8f9fa;">
-    <div class="container py-5">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-transparent border-bottom-0 d-flex justify-content-between align-items-center pt-3 px-4">
-                <h4 class="mb-0" id="pageTitle">Dettaglio Sede</h4>
-                <button onclick="window.close()" class="btn btn-sm btn-light">Chiudi</button>
-            </div>
-            <div class="card-body p-4">
-                <form id="sediForm" autocomplete="off">
+<body class="bg-base-200 min-h-screen py-8">
+    <div class="container mx-auto p-4 max-w-3xl">
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title text-2xl" id="pageTitle">Dettaglio Sede</h2>
+                    <button onclick="window.close()" class="btn btn-sm btn-ghost">Chiudi</button>
+                </div>
+                
+                <form id="sediForm" autocomplete="off" class="flex flex-col gap-4">
                     <input type="hidden" id="id" name="id" value="<%= id %>">
                     <input type="hidden" id="indirizzo_id" name="indirizzo_id">
                     
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Società <span class="text-danger">*</span></label>
-                            <select class="form-select" id="societa_id" name="societa_id" required></select>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label"><span class="label-text">Società <span class="text-error">*</span></span></label>
+                            <select class="select select-bordered w-full" id="societa_id" name="societa_id" required></select>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Tipo Sede <span class="text-danger">*</span></label>
-                            <select class="form-select" id="cva_tipo_sede_id" name="cva_tipo_sede_id" required></select>
+                        <div class="form-control">
+                            <label class="label"><span class="label-text">Tipo Sede <span class="text-error">*</span></span></label>
+                            <select class="select select-bordered w-full" id="cva_tipo_sede_id" name="cva_tipo_sede_id" required></select>
                         </div>
                     </div>
 
-                    <h6 class="border-bottom pb-2 mb-3">Indirizzo</h6>
-                    <div class="row mb-2">
-                        <div class="col-md-8">
-                            <label class="form-label">Via</label>
-                            <input type="text" class="form-control" id="via" name="via">
+                    <div class="divider">Indirizzo</div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                        <div class="md:col-span-8 form-control">
+                            <label class="label"><span class="label-text">Via</span></label>
+                            <input type="text" class="input input-bordered w-full" id="via" name="via">
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Civico</label>
-                            <input type="text" class="form-control" id="numero_civico" name="numero_civico">
-                        </div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-md-3">
-                            <label class="form-label">CAP</label>
-                            <input type="text" class="form-control" id="cap" name="cap">
-                        </div>
-                        <div class="col-md-5">
-                            <label class="form-label">Comune</label>
-                            <input type="text" class="form-control" id="comune" name="comune">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Provincia</label>
-                            <input type="text" class="form-control" id="provincia" name="provincia">
+                        <div class="md:col-span-4 form-control">
+                            <label class="label"><span class="label-text">Civico</span></label>
+                            <input type="text" class="input input-bordered w-full" id="numero_civico" name="numero_civico">
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Paese <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="paese" name="paese" value="IT" required>
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                        <div class="md:col-span-3 form-control">
+                            <label class="label"><span class="label-text">CAP</span></label>
+                            <input type="text" class="input input-bordered w-full" id="cap" name="cap">
+                        </div>
+                        <div class="md:col-span-5 form-control">
+                            <label class="label"><span class="label-text">Comune</span></label>
+                            <input type="text" class="input input-bordered w-full" id="comune" name="comune">
+                        </div>
+                        <div class="md:col-span-4 form-control">
+                            <label class="label"><span class="label-text">Provincia</span></label>
+                            <input type="text" class="input input-bordered w-full" id="provincia" name="provincia">
+                        </div>
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Paese <span class="text-error">*</span></span></label>
+                        <input type="text" class="input input-bordered w-full" id="paese" name="paese" value="IT" required>
                     </div>
 
-                    <div class="d-flex justify-content-end gap-2 mt-4">
-                        <button type="submit" id="saveButton" class="btn btn-sm btn-success">Salva</button>
+                    <div class="card-actions justify-end mt-4">
+                        <button type="submit" id="saveButton" class="btn btn-success text-white">Salva</button>
                     </div>
                 </form>
             </div>
@@ -68,32 +71,26 @@
     </div>
 
     <!-- Modal Errore Servizio Verifica -->
-    <div class="modal fade" id="serviceErrorModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-warning">
-                    <h5 class="modal-title">Servizio di Verifica Non Disponibile</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Ci scusiamo, il servizio di verifica dell'indirizzo non è attualmente disponibile.</p>
-                    <p class="fw-bold">È possibile forzare il salvataggio, ma l'operatore è responsabile della correttezza dei dati inseriti.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
-                    <button type="button" class="btn btn-danger" id="btnForceSave">Forza Salvataggio</button>
-                </div>
+    <dialog id="serviceErrorModal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg text-warning">Servizio di Verifica Non Disponibile</h3>
+            <p class="py-4">Ci scusiamo, il servizio di verifica dell'indirizzo non è attualmente disponibile.</p>
+            <p class="font-bold">È possibile forzare il salvataggio, ma l'operatore è responsabile della correttezza dei dati inseriti.</p>
+            <div class="modal-action">
+                <form method="dialog">
+                    <button class="btn btn-neutral">Annulla</button>
+                </form>
+                <button type="button" class="btn btn-error text-white" id="btnForceSave">Forza Salvataggio</button>
             </div>
         </div>
-    </div>
+    </dialog>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const id = "<%= id %>";
         const isNew = id === 'nuova';
         const form = document.getElementById('sediForm');
         const saveButton = document.getElementById('saveButton');
-        const serviceErrorModal = new bootstrap.Modal(document.getElementById('serviceErrorModal'));
+        const serviceErrorModal = document.getElementById('serviceErrorModal');
 
         function setButtonLoading(isLoading, text = 'Salvataggio...') {
             if (isLoading) {
@@ -110,7 +107,7 @@
 
         // Gestione pulsante "Forza Salvataggio"
         document.getElementById('btnForceSave').addEventListener('click', async () => {
-            serviceErrorModal.hide();
+            serviceErrorModal.close();
             await submitData();
         });
 
@@ -207,7 +204,7 @@
             } catch (error) {
                 console.error("Errore verifica indirizzo:", error);
                 setButtonLoading(false); // Ripristina il pulsante in caso di errore
-                serviceErrorModal.show();
+                serviceErrorModal.showModal();
             }
         });
 

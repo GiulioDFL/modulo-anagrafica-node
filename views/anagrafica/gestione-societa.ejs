@@ -1,66 +1,64 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-theme="corporate">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Società</title>
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- DaisyUI & Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        body {
-            background-color: #f8f9fa;
-        }
         .actions-col {
             white-space: nowrap;
             width: 1%;
         }
     </style>
 </head>
-<body style="background-color: #f8f9fa;">
-    <div class="container-fluid py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h1 class="h5 mb-1 text-secondary fw-normal" style="font-family: 'Segoe UI', sans-serif;">Gestione Società</h1>
-                <div class="small text-muted">Elenco completo</div>
+<body class="bg-base-200 min-h-screen">
+    <div class="container mx-auto p-4">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div class="text-center md:text-left">
+                <h1 class="text-2xl font-bold text-base-content">Gestione Società</h1>
+                <div class="text-sm opacity-70">Elenco completo</div>
             </div>
-            <div class="d-flex gap-2">
-                <a href="/anagrafica/dettaglio-societa/nuova" target="_blank" class="btn btn-sm btn-success">
+            <div class="flex gap-2">
+                <a href="/anagrafica/dettaglio-societa/nuova" target="_blank" class="btn btn-sm btn-success text-white">
                     <i class="bi bi-plus-lg"></i> Nuova Società
                 </a>
-                <button onclick="window.close()" class="btn btn-sm btn-secondary">Chiudi</button>
+                <button onclick="window.close()" class="btn btn-sm btn-neutral">Chiudi</button>
             </div>
         </div>
 
         <!-- Sezione Filtri -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <form id="filterForm" class="row g-3 align-items-end" autocomplete="off">
-                    <div class="col-md-3">
-                        <label for="filter_ragione_sociale" class="form-label">Ragione Sociale</label>
-                        <input type="text" class="form-control" id="filter_ragione_sociale" name="ragione_sociale">
+        <div class="card bg-base-100 shadow-xl mb-6">
+            <div class="card-body p-6">
+                <form id="filterForm" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end" autocomplete="off">
+                    <div class="md:col-span-3">
+                        <label for="filter_ragione_sociale" class="label py-0 pb-1"><span class="label-text">Ragione Sociale</span></label>
+                        <input type="text" class="input input-bordered input-sm w-full" id="filter_ragione_sociale" name="ragione_sociale">
                     </div>
-                    <div class="col-md-3">
-                        <label for="filter_partita_iva" class="form-label">Partita IVA</label>
-                        <input type="text" class="form-control" id="filter_partita_iva" name="partita_iva">
+                    <div class="md:col-span-3">
+                        <label for="filter_partita_iva" class="label py-0 pb-1"><span class="label-text">Partita IVA</span></label>
+                        <input type="text" class="input input-bordered input-sm w-full" id="filter_partita_iva" name="partita_iva">
                     </div>
-                    <div class="col-md-3">
-                        <label for="filter_codice_fiscale" class="form-label">Codice Fiscale</label>
-                        <input type="text" class="form-control" id="filter_codice_fiscale" name="codice_fiscale">
+                    <div class="md:col-span-3">
+                        <label for="filter_codice_fiscale" class="label py-0 pb-1"><span class="label-text">Codice Fiscale</span></label>
+                        <input type="text" class="input input-bordered input-sm w-full" id="filter_codice_fiscale" name="codice_fiscale">
                     </div>
-                    <div class="col-md-3">
-                        <label for="filter_codice_destinatario" class="form-label">Codice Destinatario</label>
-                        <input type="text" class="form-control" id="filter_codice_destinatario" name="codice_destinatario">
+                    <div class="md:col-span-3">
+                        <label for="filter_codice_destinatario" class="label py-0 pb-1"><span class="label-text">Codice Destinatario</span></label>
+                        <input type="text" class="input input-bordered input-sm w-full" id="filter_codice_destinatario" name="codice_destinatario">
                     </div>
-                    <div class="col-md-3">
-                        <label for="filter_settore_id" class="form-label">Settore</label>
-                        <select class="form-select" id="filter_settore_id" name="settore_id">
+                    <div class="md:col-span-3">
+                        <label for="filter_settore_id" class="label py-0 pb-1"><span class="label-text">Settore</span></label>
+                        <select class="select select-bordered select-sm w-full" id="filter_settore_id" name="settore_id">
                             <option value="">Tutti</option>
                         </select>
                     </div>
-                    <div class="col-12 text-md-end">
-                        <button type="button" class="btn btn-sm btn-secondary me-2" onclick="resetFilters()">Reset</button>
+                    <div class="md:col-span-12 flex justify-end gap-2 mt-2">
+                        <button type="button" class="btn btn-sm btn-ghost" onclick="resetFilters()">Reset</button>
                         <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-search"></i> Cerca</button>
                     </div>
                 </form>
@@ -68,11 +66,11 @@
         </div>
 
         <!-- Tabella Risultati -->
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover align-middle">
-                        <thead class="table-light">
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body p-0">
+                <div class="overflow-x-auto rounded-box">
+                    <table class="table table-zebra w-full">
+                        <thead class="bg-base-200 text-base-content uppercase text-xs font-bold">
                             <tr>
                                 <th>ID</th>
                                 <th>Ragione Sociale</th>
@@ -80,7 +78,7 @@
                                 <th>Codice Fiscale</th>
                                 <th>Cod. Dest.</th>
                                 <th>Settore</th>
-                                <th class="actions-col">Azioni</th>
+                                <th class="actions-col text-right pr-4">Azioni</th>
                             </tr>
                         </thead>
                         <tbody id="societaTableBody">
@@ -92,8 +90,6 @@
         </div>
     </div>
 
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
         // Funzione per gestire la conferma di eliminazione sicura
@@ -119,12 +115,12 @@
                     tbody.innerHTML = '';
                     
                     if (data.error) {
-                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">Errore: ${data.error}</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-error">Errore: ${data.error}</td></tr>`;
                         return;
                     }
 
                     if (data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Nessuna società trovata con i filtri selezionati.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 opacity-60">Nessuna società trovata con i filtri selezionati.</td></tr>';
                         return;
                     }
 
@@ -133,33 +129,35 @@
                         const itemJson = JSON.stringify(item).replace(/"/g, '&quot;');
                         
                         const row = `
-                            <tr>
+                            <tr class="hover">
                                 <td>${item.id}</td>
-                                <td class="fw-bold">${item.ragione_sociale}</td>
+                                <td class="font-bold">${item.ragione_sociale}</td>
                                 <td>${item.partita_iva || ''}</td>
                                 <td>${item.codice_fiscale || ''}</td>
                                 <td>${item.codice_destinatario || ''}</td>
                                 <td>${item.settore_descrizione || ''}</td>
-                                <td class="actions-col">
-                                    <a href="/anagrafica/dettaglio-societa/${item.id}" target="_blank" class="btn btn-sm btn-primary me-1" title="Dettaglio/Modifica">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </a>
-                                    <a href="/anagrafica/gestione-sedi?societa_id=${item.id}" target="_blank" class="btn btn-sm btn-info me-1" title="Gestione Sedi">
-                                        <i class="bi bi-geo-alt"></i>
-                                    </a>
-                                    <a href="/anagrafica/gestione-uffici?societa_id=${item.id}" target="_blank" class="btn btn-sm btn-secondary me-1" title="Gestione Uffici">
-                                        <i class="bi bi-building"></i>
-                                    </a>
-                                    <a href="/anagrafica/gestione-referenti?societa_id=${item.id}" target="_blank" class="btn btn-sm btn-warning me-1" title="Gestione Referenti">
-                                        <i class="bi bi-people"></i>
-                                    </a>
-                                    <form action="/anagrafica/gestione-societa/delete" method="POST" class="d-inline" onsubmit="return confirmDelete(this);">
-                                        <input type="hidden" name="id" value="${item.id}">
-                                        <input type="hidden" name="confirm_prompt">
-                                        <button type="submit" class="btn btn-sm btn-danger" title="Elimina">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
+                                <td class="actions-col text-right">
+                                    <div class="flex justify-end gap-1">
+                                        <a href="/anagrafica/dettaglio-societa/${item.id}" target="_blank" class="btn btn-sm btn-square btn-primary" title="Dettaglio/Modifica">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <a href="/anagrafica/gestione-sedi?societa_id=${item.id}" target="_blank" class="btn btn-sm btn-square btn-info text-white" title="Gestione Sedi">
+                                            <i class="bi bi-geo-alt"></i>
+                                        </a>
+                                        <a href="/anagrafica/gestione-uffici?societa_id=${item.id}" target="_blank" class="btn btn-sm btn-square btn-neutral" title="Gestione Uffici">
+                                            <i class="bi bi-building"></i>
+                                        </a>
+                                        <a href="/anagrafica/gestione-referenti?societa_id=${item.id}" target="_blank" class="btn btn-sm btn-square btn-warning text-white" title="Gestione Referenti">
+                                            <i class="bi bi-people"></i>
+                                        </a>
+                                        <form action="/anagrafica/gestione-societa/delete" method="POST" class="inline-block" onsubmit="return confirmDelete(this);">
+                                            <input type="hidden" name="id" value="${item.id}">
+                                            <input type="hidden" name="confirm_prompt">
+                                            <button type="submit" class="btn btn-sm btn-square btn-error text-white" title="Elimina">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         `;

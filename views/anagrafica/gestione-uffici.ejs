@@ -1,62 +1,62 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="it" data-theme="corporate">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Uffici</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- DaisyUI & Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        body {
-            background-color: #f8f9fa;
-        }
         .actions-col { white-space: nowrap; width: 1%; }
     </style>
 </head>
-<body class="bg-light">
-    <div class="container-fluid py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h1 class="h5 mb-1 text-secondary fw-normal" style="font-family: 'Segoe UI', sans-serif;">Gestione Uffici</h1>
-                <div id="hierarchyInfo" class="small text-muted"></div>
+<body class="bg-base-200 min-h-screen">
+    <div class="container mx-auto p-4">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <div class="text-center md:text-left">
+                <h1 class="text-2xl font-bold text-base-content">Gestione Uffici</h1>
+                <div id="hierarchyInfo" class="text-sm opacity-70"></div>
             </div>
-            <div class="d-flex gap-2">
-                <a href="/anagrafica/ufficio/dettaglio?id=nuova&societa_id=<%= societa_id %>&sede_id=<%= sede_id || '' %>" target="_blank" class="btn btn-sm btn-success">
+            <div class="flex gap-2">
+                <a href="/anagrafica/ufficio/dettaglio?id=nuova&societa_id=<%= societa_id %>&sede_id=<%= sede_id || '' %>" target="_blank" class="btn btn-sm btn-success text-white">
                     <i class="bi bi-plus-lg"></i> Nuovo Ufficio
                 </a>
-                <button onclick="window.close()" class="btn btn-sm btn-secondary">Chiudi</button>
+                <button onclick="window.close()" class="btn btn-sm btn-neutral">Chiudi</button>
             </div>
         </div>
 
         <!-- Filtri -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <form id="filterForm" class="row g-3 align-items-end" autocomplete="off">
-                    <div class="col-md-4">
-                        <label for="search" class="form-label">Cerca</label>
-                        <input type="text" class="form-control" id="search" name="search" placeholder="Nome ufficio, Tipo...">
+        <div class="card bg-base-100 shadow-xl mb-6">
+            <div class="card-body p-6">
+                <form id="filterForm" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end" autocomplete="off">
+                    <div class="md:col-span-4">
+                        <label for="search" class="label py-0 pb-1"><span class="label-text">Cerca</span></label>
+                        <input type="text" class="input input-bordered input-sm w-full" id="search" name="search" placeholder="Nome ufficio, Tipo...">
                     </div>
-                    <div class="col-md-8 text-md-end">
+                    <div class="md:col-span-8 flex justify-end gap-2 mt-2">
+                        <button type="button" class="btn btn-sm btn-ghost" onclick="resetFilters()">Reset</button>
                         <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-search"></i> Cerca</button>
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="resetFilters()">Reset</button>
                     </div>
                 </form>
             </div>
         </div>
 
         <!-- Tabella -->
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover align-middle">
-                        <thead class="table-light">
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body p-0">
+                <div class="overflow-x-auto rounded-box">
+                    <table class="table table-zebra w-full">
+                        <thead class="bg-base-200 text-base-content uppercase text-xs font-bold">
                             <tr>
                                 <th>ID</th>
                                 <th id="th-societa">Società</th>
                                 <th>Nome Ufficio</th>
                                 <th>Tipo</th>
                                 <th id="th-collocazione">Collocazione</th>
-                                <th class="actions-col">Azioni</th>
+                                <th class="actions-col text-right pr-4">Azioni</th>
                             </tr>
                         </thead>
                         <tbody id="uffici-table-body"></tbody>
@@ -66,7 +66,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const societaId = '<%= societa_id %>';
         const sedeId = '<%= sede_id || "" %>';
@@ -99,7 +98,7 @@
                 Promise.all([pSocieta, pSede])
                     .then(([dataSocieta, dataSede]) => {
                         if (dataSocieta && dataSocieta.length > 0) {
-                            let hierarchyHtml = `Società: <a href="/anagrafica/dettaglio-societa/${dataSocieta[0].id}" target="_blank" class="text-decoration-none fw-bold">${dataSocieta[0].ragione_sociale}</a>`;
+                            let hierarchyHtml = `Società: <a href="/anagrafica/dettaglio-societa/${dataSocieta[0].id}" target="_blank" class="link link-hover font-bold">${dataSocieta[0].ragione_sociale}</a>`;
                             
                             if (dataSede && dataSede.length > 0) {
                                 const s = dataSede[0];
@@ -108,7 +107,7 @@
                                 const indirizzoCompleto = [indirizzo, localita].filter(x => x && String(x).trim()).join(', ');
                                 const tipo = s.tipo_sede_desc || s.tipo_sede || 'Sede';
                                 
-                                hierarchyHtml += ` <i class="bi bi-chevron-right mx-1"></i> Sede: <a href="/anagrafica/dettaglio-sede/${s.id}" target="_blank" class="text-decoration-none fw-bold">${indirizzoCompleto} - ${tipo}</a>`;
+                                hierarchyHtml += ` <i class="bi bi-chevron-right mx-1"></i> Sede: <a href="/anagrafica/dettaglio-sede/${s.id}" target="_blank" class="link link-hover font-bold">${indirizzoCompleto} - ${tipo}</a>`;
                             }
                             document.getElementById('hierarchyInfo').innerHTML = hierarchyHtml;
                         }
@@ -122,11 +121,11 @@
                     tbody.innerHTML = '';
                     
                     if (data.error) {
-                        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Errore: ${data.error}</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-error">Errore: ${data.error}</td></tr>`;
                         return;
                     }
                     if (data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Nessun ufficio trovato.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 opacity-60">Nessun ufficio trovato.</td></tr>';
                         return;
                     }
 
@@ -149,19 +148,21 @@
                         const labelSede = tipoSede ? `${indirizzoCompleto} - ${tipoSede}` : indirizzoCompleto;
 
                         tbody.innerHTML += `
-                            <tr>
+                            <tr class="hover">
                                 <td>${u.id}</td>
-                                ${ (societaId || sedeId) ? '' : `<td>${u.societa_id ? `<a href="/anagrafica/dettaglio-societa/${u.societa_id}" target="_blank" class="text-decoration-none fw-bold">${u.ragione_sociale || '-'}</a>` : (u.ragione_sociale || '-')}</td>` }
-                                <td class="fw-bold">${u.nome_ufficio || '-'}</td>
-                                <td><span class="badge bg-info text-dark">${u.tipo_ufficio}</span></td>
-                                ${sedeId ? '' : `<td>${u.sede_id ? `<a href="/anagrafica/dettaglio-sede/${u.sede_id}" target="_blank" class="text-decoration-none fw-bold">${labelSede}</a>` : labelSede}</td>`}
-                                <td class="actions-col">
-                                    <a href="/anagrafica/ufficio/dettaglio?id=${u.id}&societa_id=${u.societa_id}" target="_blank" class="btn btn-sm btn-primary me-1" title="Dettaglio/Modifica"><i class="bi bi-pencil-square"></i></a>
-                                    <a href="/anagrafica/gestione-referenti?societa_id=${u.societa_id}&ufficio_id=${u.id}" target="_blank" class="btn btn-sm btn-warning me-1" title="Gestione Referenti"><i class="bi bi-people"></i></a>
-                                    <form action="/anagrafica/gestione-uffici/delete" method="POST" class="d-inline" onsubmit="return confirmDelete(this);">
-                                        <input type="hidden" name="id" value="${u.id}">
-                                        <button type="submit" class="btn btn-sm btn-danger" title="Elimina"><i class="bi bi-trash"></i></button>
-                                    </form>
+                                ${ (societaId || sedeId) ? '' : `<td>${u.societa_id ? `<a href="/anagrafica/dettaglio-societa/${u.societa_id}" target="_blank" class="link link-hover font-bold">${u.ragione_sociale || '-'}</a>` : (u.ragione_sociale || '-')}</td>` }
+                                <td class="font-bold">${u.nome_ufficio || '-'}</td>
+                                <td><span class="badge badge-info">${u.tipo_ufficio}</span></td>
+                                ${sedeId ? '' : `<td>${u.sede_id ? `<a href="/anagrafica/dettaglio-sede/${u.sede_id}" target="_blank" class="link link-hover font-bold">${labelSede}</a>` : labelSede}</td>`}
+                                <td class="actions-col text-right">
+                                    <div class="flex justify-end gap-1">
+                                        <a href="/anagrafica/ufficio/dettaglio?id=${u.id}&societa_id=${u.societa_id}" target="_blank" class="btn btn-sm btn-square btn-primary" title="Dettaglio/Modifica"><i class="bi bi-pencil-square"></i></a>
+                                        <a href="/anagrafica/gestione-referenti?societa_id=${u.societa_id}&ufficio_id=${u.id}" target="_blank" class="btn btn-sm btn-square btn-warning text-white" title="Gestione Referenti"><i class="bi bi-people"></i></a>
+                                        <form action="/anagrafica/gestione-uffici/delete" method="POST" class="inline-block" onsubmit="return confirmDelete(this);">
+                                            <input type="hidden" name="id" value="${u.id}">
+                                            <button type="submit" class="btn btn-sm btn-square btn-error text-white" title="Elimina"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         `;
