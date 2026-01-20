@@ -51,7 +51,6 @@
                     <table class="table table-zebra w-full">
                         <thead class="bg-base-200 text-base-content uppercase text-xs font-bold">
                             <tr>
-                                <th>ID</th>
                                 <th id="th-societa">Società</th>
                                 <th>Nome Ufficio</th>
                                 <th>Tipo</th>
@@ -121,11 +120,11 @@
                     tbody.innerHTML = '';
                     
                     if (data.error) {
-                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-error">Errore: ${data.error}</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-error">Errore: ${data.error}</td></tr>`;
                         return;
                     }
                     if (data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 opacity-60">Nessun ufficio trovato.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 opacity-60">Nessun ufficio trovato.</td></tr>';
                         return;
                     }
 
@@ -149,7 +148,6 @@
 
                         tbody.innerHTML += `
                             <tr class="hover">
-                                <td>${u.id}</td>
                                 ${ (societaId || sedeId) ? '' : `<td>${u.societa_id ? `<a href="/anagrafica/dettaglio-societa/${u.societa_id}" target="_blank" class="link link-hover font-bold">${u.ragione_sociale || '-'}</a>` : (u.ragione_sociale || '-')}</td>` }
                                 <td class="font-bold">${u.nome_ufficio || '-'}</td>
                                 <td><span class="badge badge-info">${u.tipo_ufficio}</span></td>

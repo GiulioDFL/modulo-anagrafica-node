@@ -72,7 +72,6 @@
                     <table class="table table-zebra w-full">
                         <thead class="bg-base-200 text-base-content uppercase text-xs font-bold">
                             <tr>
-                                <th>ID</th>
                                 <th>Ragione Sociale</th>
                                 <th>Partita IVA</th>
                                 <th>Codice Fiscale</th>
@@ -115,12 +114,12 @@
                     tbody.innerHTML = '';
                     
                     if (data.error) {
-                        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-error">Errore: ${data.error}</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-error">Errore: ${data.error}</td></tr>`;
                         return;
                     }
 
                     if (data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 opacity-60">Nessuna società trovata con i filtri selezionati.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 opacity-60">Nessuna società trovata con i filtri selezionati.</td></tr>';
                         return;
                     }
 
@@ -130,7 +129,6 @@
                         
                         const row = `
                             <tr class="hover">
-                                <td>${item.id}</td>
                                 <td class="font-bold">${item.ragione_sociale}</td>
                                 <td>${item.partita_iva || ''}</td>
                                 <td>${item.codice_fiscale || ''}</td>

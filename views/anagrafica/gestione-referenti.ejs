@@ -51,7 +51,6 @@
                     <table class="table table-zebra w-full">
                         <thead class="bg-base-200 text-base-content uppercase text-xs font-bold">
                             <tr>
-                                <th>ID</th>
                                 <th>Nominativo</th>
                                 <th>Ruolo</th>
                                 <th id="th-societa">Società</th>
@@ -144,18 +143,17 @@
                     tbody.innerHTML = '';
                     
                     if (data.error) {
-                        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-error">Errore: ${data.error}</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-error">Errore: ${data.error}</td></tr>`;
                         return;
                     }
                     if (data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 opacity-60">Nessun referente trovato.</td></tr>';
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 opacity-60">Nessun referente trovato.</td></tr>';
                         return;
                     }
 
                     data.forEach(r => {
                         tbody.innerHTML += `
                             <tr class="hover">
-                                <td>${r.id}</td>
                                 <td class="font-bold">${r.cognome} ${r.nome}</td>
                                 <td><span class="badge badge-info">${r.ruolo || '-'}</span></td>
                                 ${(societaId || sedeId || ufficioId) ? '' : `<td>${r.societa_id ? `<a href="/anagrafica/dettaglio-societa/${r.societa_id}" target="_blank" class="link link-hover font-bold">${r.ragione_sociale || '-'}</a>` : (r.ragione_sociale || '-')}</td>`}
