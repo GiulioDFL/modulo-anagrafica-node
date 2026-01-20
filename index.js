@@ -40,6 +40,7 @@ app.use(require('./routes/anagrafica/referenti-add'));
 app.use(require('./routes/anagrafica/referenti-edit'));
 app.use(require('./routes/anagrafica/referenti-delete'));
 app.use(require('./routes/util/gemini'));
+app.use(require('./routes/settings'));
 
 // Avvio del server
 app.listen(port, () => {
