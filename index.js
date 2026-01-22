@@ -36,6 +36,7 @@ app.use(require('./routes/anagrafica/uffici-delete'));
 app.use(require('./routes/anagrafica/tipi-ufficio'));
 app.use(require('./routes/anagrafica/referenti-view'));
 app.use(require('./routes/anagrafica/referenti-get'));
+app.use(require('./routes/anagrafica/referenti-dettaglio'));
 app.use(require('./routes/anagrafica/referenti-add'));
 app.use(require('./routes/anagrafica/referenti-edit'));
 app.use(require('./routes/anagrafica/referenti-delete'));

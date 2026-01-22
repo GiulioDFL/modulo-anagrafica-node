@@ -21,7 +21,7 @@
                 <div id="hierarchyInfo" class="text-sm opacity-70"></div>
             </div>
             <div class="flex gap-2">
-                <a href="/anagrafica/referente/dettaglio?id=nuova&societa_id=<%= societa_id %>&sede_id=<%= sede_id || '' %>&ufficio_id=<%= ufficio_id || '' %>" target="_blank" class="btn btn-sm btn-success text-white">
+                <a href="/anagrafica/gestione-referenti/dettaglio?id=nuova&societa_id=<%= societa_id %>&sede_id=<%= sede_id || '' %>&ufficio_id=<%= ufficio_id || '' %>" target="_blank" class="btn btn-sm btn-success text-white">
                     <i class="bi bi-plus-lg"></i> Nuovo Referente
                 </a>
                 <button onclick="window.close()" class="btn btn-sm btn-neutral">Chiudi</button>
@@ -161,7 +161,7 @@
                                 ${ufficioId ? '' : `<td>${r.ufficio_id ? `<a href="/anagrafica/ufficio/dettaglio?id=${r.ufficio_id}&societa_id=${r.societa_id}" target="_blank" class="link link-hover font-bold">${r.nome_ufficio || r.contesto_ufficio || '-'}</a>` : (r.nome_ufficio || r.contesto_ufficio || '-')}</td>`}
                                 <td class="actions-col text-right">
                                     <div class="flex justify-end gap-1">
-                                        <a href="/anagrafica/referente/dettaglio?id=${r.id}" target="_blank" class="btn btn-sm btn-square btn-primary" title="Dettaglio/Modifica"><i class="bi bi-pencil-square"></i></a>
+                                        <a href="/anagrafica/gestione-referenti/dettaglio?id=${r.id}" target="_blank" class="btn btn-sm btn-square btn-primary" title="Dettaglio/Modifica"><i class="bi bi-pencil-square"></i></a>
                                         <button class="btn btn-sm btn-square btn-error text-white" title="Elimina" onclick="deleteReferente(${r.id})"><i class="bi bi-trash"></i></button>
                                     </div>
                                 </td>
