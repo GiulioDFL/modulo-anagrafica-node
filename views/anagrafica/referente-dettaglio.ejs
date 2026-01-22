@@ -77,11 +77,17 @@
         const saveButton = document.getElementById('saveButton');
         
         // Parametri iniziali da EJS
-        const initialSedeId = "<%= sede_id || '' %>";
-        const initialUfficioId = "<%= ufficio_id || '' %>";
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialSedeId = "<%= sede_id || '' %>" || urlParams.get('sede_id') || '';
+        const initialUfficioId = "<%= ufficio_id || '' %>" || urlParams.get('ufficio_id') || '';
+        const initialSocietaId = "<%= societa_id || '' %>" || urlParams.get('societa_id') || '';
 
         document.addEventListener('DOMContentLoaded', async () => {
-            const societaId = document.getElementById('societa_id').value;
+            const societaInput = document.getElementById('societa_id');
+            if (!societaInput.value && initialSocietaId) {
+                societaInput.value = initialSocietaId;
+            }
+            const societaId = societaInput.value;
             
             // Caricamento dati preliminari
             await Promise.all([
@@ -170,6 +176,7 @@
                         option.value = u.id;
                         if (u.sede_id) option.dataset.sedeId = u.sede_id;
                         const nome = u.nome_ufficio ? `${u.nome_ufficio} (${u.tipo_ufficio})` : u.tipo_ufficio;
+                        option.textContent = nome;
                         select.appendChild(option);
                     });
                     applyContextLogic();
