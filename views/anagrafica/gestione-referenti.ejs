@@ -166,7 +166,7 @@
                                 <td><span class="badge badge-info">${r.ruolo || '-'}</span></td>
                                 ${(societaId || sedeId || ufficioId) ? '' : `<td>${r.societa_id ? `<a href="/anagrafica/dettaglio-societa/${r.societa_id}" target="_blank" class="link link-hover font-bold">${r.ragione_sociale || '-'}</a>` : (r.ragione_sociale || '-')}</td>`}
                                 ${(sedeId || ufficioId) ? '' : `<td>${r.sede_id ? `<a href="/anagrafica/dettaglio-sede/${r.sede_id}" target="_blank" class="link link-hover font-bold">${formatSede(r)}</a>` : formatSede(r)}</td>`}
-                                ${ufficioId ? '' : `<td>${r.ufficio_id ? `<a href="/anagrafica/ufficio/dettaglio?id=${r.ufficio_id}&societa_id=${r.societa_id}" target="_blank" class="link link-hover font-bold">${r.nome_ufficio || r.contesto_ufficio || '-'}</a>` : (r.nome_ufficio || r.contesto_ufficio || '-')}</td>`}
+                                ${ufficioId ? '' : `<td>${r.ufficio_id ? `<a href="/anagrafica/ufficio/dettaglio?id=${r.ufficio_id}&societa_id=${r.societa_id}" target="_blank" class="link link-hover font-bold">${formatUfficio(r)}</a>` : formatUfficio(r)}</td>`}
                                 <td class="actions-col text-right">
                                     <div class="flex justify-end gap-1">
                                         <a href="/anagrafica/gestione-referenti/dettaglio?id=${r.id}" target="_blank" class="btn btn-sm btn-square btn-primary" title="Dettaglio/Modifica"><i class="bi bi-pencil-square"></i></a>
@@ -196,6 +196,12 @@
             const tipo = r.tipo_sede_valore || r.tipo_sede || 'Sede';
             
             return indirizzo ? `${indirizzo} (${tipo})` : (r.contesto_sede || '-');
+        }
+
+        function formatUfficio(r) {
+            if (!r.ufficio_id) return '-';
+            if (r.nome_ufficio && r.nome_ufficio.trim() !== '') return `${r.nome_ufficio} (${r.tipo_ufficio})`;
+            return r.tipo_ufficio || '-';
         }
 
         document.getElementById('filterForm').addEventListener('submit', (e) => { e.preventDefault(); loadReferenti(); });
