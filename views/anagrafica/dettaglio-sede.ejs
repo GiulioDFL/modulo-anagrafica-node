@@ -133,7 +133,7 @@
                     const option = socSelect.options[socSelect.selectedIndex];
                     if (option) {
                         renderContext([
-                            { label: 'Società', value: option.text, url: `/anagrafica/societa/dettaglio?id=${societaIdParam}` }
+                            { label: 'Società', value: option.text, url: `/anagrafica/dettaglio-societa/${societaIdParam}` }
                         ]);
                         socSelect.closest('.form-control').classList.add('hidden');
                     }
@@ -173,7 +173,7 @@
                         
                         if (item.ragione_sociale) {
                             renderContext([
-                                { label: 'Società', value: item.ragione_sociale, url: `/anagrafica/societa/dettaglio?id=${item.societa_id}` }
+                                { label: 'Società', value: item.ragione_sociale, url: `/anagrafica/dettaglio-societa/${item.societa_id}` }
                             ]);
                             document.getElementById('societa_id').closest('.form-control').classList.add('hidden');
                         }

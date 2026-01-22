@@ -73,7 +73,7 @@
                     const socName = await getCompanyName(socId);
                     
                     const contextItems = [
-                        { label: 'Società', value: socName, url: `/anagrafica/societa/dettaglio?id=${socId}` }
+                        { label: 'Società', value: socName, url: `/anagrafica/dettaglio-societa/${socId}` }
                     ];
                     
                     const sedeIdParam = "<%= sede_id || '' %>";
@@ -83,7 +83,7 @@
                         const sedeSelect = document.getElementById('sede_id');
                         const selectedOption = sedeSelect.options[sedeSelect.selectedIndex];
                         if (selectedOption) {
-                            contextItems.push({ label: 'Sede', value: selectedOption.text, url: `/anagrafica/sedi/dettaglio?id=${sedeIdParam}` });
+                            contextItems.push({ label: 'Sede', value: selectedOption.text, url: `/anagrafica/dettaglio-sede/${sedeIdParam}` });
                             sedeSelect.closest('.form-control').classList.add('hidden');
                         }
                     }
@@ -170,11 +170,11 @@
                         
                         // Context Logic for Edit
                         const contextItems = [
-                            { label: 'Società', value: item.ragione_sociale, url: `/anagrafica/societa/dettaglio?id=${item.societa_id}` }
+                            { label: 'Società', value: item.ragione_sociale, url: `/anagrafica/dettaglio-societa/${item.societa_id}` }
                         ];
                         
                         if (item.sede_id) {
-                            contextItems.push({ label: 'Sede', value: item.collocazione, url: `/anagrafica/sedi/dettaglio?id=${item.sede_id}` });
+                            contextItems.push({ label: 'Sede', value: item.collocazione, url: `/anagrafica/dettaglio-sede/${item.sede_id}` });
                             document.getElementById('sede_id').closest('.form-control').classList.add('hidden');
                         }
                         renderContext(contextItems);
