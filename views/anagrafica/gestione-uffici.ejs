@@ -154,7 +154,7 @@
                                 ${sedeId ? '' : `<td>${u.sede_id ? `<a href="/anagrafica/dettaglio-sede/${u.sede_id}" target="_blank" class="link link-hover font-bold">${labelSede}</a>` : labelSede}</td>`}
                                 <td class="actions-col text-right">
                                     <div class="flex justify-end gap-1">
-                                        <a href="/anagrafica/ufficio/dettaglio?id=${u.id}&societa_id=${u.societa_id}" target="_blank" class="btn btn-sm btn-square btn-primary" title="Dettaglio/Modifica"><i class="bi bi-pencil-square"></i></a>
+                                        <a href="/anagrafica/ufficio/dettaglio?id=${u.id}" target="_blank" class="btn btn-sm btn-square btn-primary" title="Dettaglio/Modifica"><i class="bi bi-pencil-square"></i></a>
                                         <a href="/anagrafica/gestione-referenti?societa_id=${u.societa_id}&ufficio_id=${u.id}" target="_blank" class="btn btn-sm btn-square btn-warning text-white" title="Gestione Referenti"><i class="bi bi-people"></i></a>
                                         <form action="/anagrafica/gestione-uffici/delete" method="POST" class="inline-block" onsubmit="return confirmDelete(this);">
                                             <input type="hidden" name="id" value="${u.id}">

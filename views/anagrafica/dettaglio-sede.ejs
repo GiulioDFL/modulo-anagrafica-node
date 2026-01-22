@@ -16,6 +16,12 @@
                     <button onclick="window.close()" class="btn btn-sm btn-ghost">Chiudi</button>
                 </div>
                 
+                <div id="contextInfo" class="alert bg-base-200 text-sm mb-4 hidden">
+                    <span class="opacity-70">
+                        <strong>Contesto:</strong> <span id="contextText"></span>
+                    </span>
+                </div>
+
                 <form id="sediForm" autocomplete="off" class="flex flex-col gap-4">
                     <input type="hidden" id="id" name="id" value="<%= id %>">
                     <input type="hidden" id="indirizzo_id" name="indirizzo_id">
@@ -123,6 +129,14 @@
                 const societaIdParam = urlParams.get('societa_id');
                 if (societaIdParam) {
                     document.getElementById('societa_id').value = societaIdParam;
+                    
+                    const socSelect = document.getElementById('societa_id');
+                    const option = socSelect.options[socSelect.selectedIndex];
+                    if (option) {
+                        document.getElementById('contextText').innerText = "Società: " + option.text;
+                        document.getElementById('contextInfo').classList.remove('hidden');
+                        socSelect.closest('.form-control').classList.add('hidden');
+                    }
                 }
             } else {
                 document.getElementById('pageTitle').innerText = "Modifica Sede";
@@ -156,6 +170,13 @@
                         const item = data[0];
                         document.getElementById('indirizzo_id').value = item.indirizzo_id;
                         document.getElementById('societa_id').value = item.societa_id;
+                        
+                        if (item.ragione_sociale) {
+                            document.getElementById('contextText').innerText = "Società: " + item.ragione_sociale;
+                            document.getElementById('contextInfo').classList.remove('hidden');
+                            document.getElementById('societa_id').closest('.form-control').classList.add('hidden');
+                        }
+                        
                         document.getElementById('cva_tipo_sede_id').value = item.cva_tipo_sede_id;
                         document.getElementById('via').value = item.via || '';
                         document.getElementById('numero_civico').value = item.numero_civico || '';

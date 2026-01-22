@@ -16,6 +16,12 @@
                     <button onclick="window.close()" class="btn btn-sm btn-ghost">Chiudi</button>
                 </div>
                 
+                <div id="contextInfo" class="alert bg-base-200 text-sm mb-4 hidden">
+                    <span class="opacity-70">
+                        <strong>Contesto:</strong> <span id="contextText"></span>
+                    </span>
+                </div>
+
                 <form id="ufficioForm" autocomplete="off" class="flex flex-col gap-4">
                     <input type="hidden" id="id" name="id" value="<%= id %>">
                     <!-- Campi nascosti per il contesto -->
@@ -38,13 +44,6 @@
                         <select class="select select-bordered w-full" id="sede_id" name="sede_id">
                             <option value="">Intera Società</option>
                         </select>
-                    </div>
-
-                    <div class="alert bg-base-200 text-sm mt-2">
-                        <span class="opacity-70">
-                            <strong>Contesto:</strong> 
-                            Società: <span id="lbl_societa">Caricamento...</span>
-                        </span>
                     </div>
 
                     <div class="card-actions justify-end mt-4">
@@ -72,8 +71,23 @@
                 const socId = document.getElementById('societa_id').value;
                 if (socId) {
                     await loadSedi(socId);
-                    loadCompanyInfo(socId);
-                    document.getElementById('sede_id').value = "<%= sede_id || '' %>";
+                    const socName = await getCompanyName(socId);
+                    
+                    let contextStr = `Società: ${socName}`;
+                    const sedeIdParam = "<%= sede_id || '' %>";
+                    
+                    if (sedeIdParam) {
+                        document.getElementById('sede_id').value = sedeIdParam;
+                        const sedeSelect = document.getElementById('sede_id');
+                        const selectedOption = sedeSelect.options[sedeSelect.selectedIndex];
+                        if (selectedOption) {
+                            contextStr += ` | Sede: ${selectedOption.text}`;
+                            sedeSelect.closest('.form-control').classList.add('hidden');
+                        }
+                    }
+                    
+                    document.getElementById('contextText').innerText = contextStr;
+                    document.getElementById('contextInfo').classList.remove('hidden');
                 }
             } else {
                 document.getElementById('pageTitle').innerText = "Modifica Ufficio";
@@ -124,16 +138,14 @@
             }
         }
 
-        function loadCompanyInfo(societaId) {
+        async function getCompanyName(societaId) {
             if (!societaId) return;
-            fetch(`/api/anagrafica/societa?id=${societaId}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.length > 0) {
-                        document.getElementById('lbl_societa').innerText = data[0].ragione_sociale;
-                    }
-                })
-                .catch(err => console.error("Errore caricamento società:", err));
+            try {
+                const res = await fetch(`/api/anagrafica/societa?id=${societaId}`);
+                const data = await res.json();
+                if (data && data.length > 0) return data[0].ragione_sociale;
+            } catch (err) { console.error("Errore caricamento società:", err); }
+            return '';
         }
 
         function loadData() {
@@ -153,9 +165,16 @@
                         document.getElementById('societa_id').value = item.societa_id;
                         
                         await loadSedi(item.societa_id);
-                        loadCompanyInfo(item.societa_id);
-                        
                         document.getElementById('sede_id').value = item.sede_id || '';
+                        
+                        // Context Logic for Edit
+                        let contextStr = `Società: ${item.ragione_sociale}`;
+                        if (item.sede_id) {
+                            contextStr += ` | ${item.collocazione}`;
+                            document.getElementById('sede_id').closest('.form-control').classList.add('hidden');
+                        }
+                        document.getElementById('contextText').innerText = contextStr;
+                        document.getElementById('contextInfo').classList.remove('hidden');
                     } else {
                         alert("Ufficio non trovato.");
                     }
