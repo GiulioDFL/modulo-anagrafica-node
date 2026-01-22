@@ -16,10 +16,9 @@
                     <button onclick="window.close()" class="btn btn-sm btn-ghost">Chiudi</button>
                 </div>
                 
-                <div id="contextInfo" class="alert bg-base-200 text-sm mb-4 hidden">
-                    <span class="opacity-70">
-                        <strong>Contesto:</strong> <span id="contextText"></span>
-                    </span>
+                <div id="contextInfo" class="alert bg-base-200 text-sm mb-4 hidden flex-col items-start gap-2">
+                    <div class="font-bold">Contesto:</div>
+                    <div id="contextList" class="flex flex-col gap-1 w-full pl-2 border-l-2 border-base-300"></div>
                 </div>
 
                 <form id="sediForm" autocomplete="off" class="flex flex-col gap-4">
@@ -133,8 +132,9 @@
                     const socSelect = document.getElementById('societa_id');
                     const option = socSelect.options[socSelect.selectedIndex];
                     if (option) {
-                        document.getElementById('contextText').innerText = "Società: " + option.text;
-                        document.getElementById('contextInfo').classList.remove('hidden');
+                        renderContext([
+                            { label: 'Società', value: option.text, url: `/anagrafica/societa/dettaglio?id=${societaIdParam}` }
+                        ]);
                         socSelect.closest('.form-control').classList.add('hidden');
                     }
                 }
@@ -172,8 +172,9 @@
                         document.getElementById('societa_id').value = item.societa_id;
                         
                         if (item.ragione_sociale) {
-                            document.getElementById('contextText').innerText = "Società: " + item.ragione_sociale;
-                            document.getElementById('contextInfo').classList.remove('hidden');
+                            renderContext([
+                                { label: 'Società', value: item.ragione_sociale, url: `/anagrafica/societa/dettaglio?id=${item.societa_id}` }
+                            ]);
                             document.getElementById('societa_id').closest('.form-control').classList.add('hidden');
                         }
                         
@@ -258,6 +259,21 @@
                     setButtonLoading(false);
                 }
             }
+        }
+
+        function renderContext(items) {
+            const list = document.getElementById('contextList');
+            list.innerHTML = '';
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-2';
+                div.innerHTML = `
+                    <span class="opacity-70 font-semibold min-w-[60px]">${item.label}:</span>
+                    <a href="#" onclick="window.open('${item.url}', '_blank', 'width=1024,height=768'); return false;" class="link link-primary hover:text-primary-focus font-medium">${item.value}</a>
+                `;
+                list.appendChild(div);
+            });
+            document.getElementById('contextInfo').classList.remove('hidden');
         }
     </script>
 </body>

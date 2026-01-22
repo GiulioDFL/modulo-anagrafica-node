@@ -16,10 +16,9 @@
                     <button onclick="window.close()" class="btn btn-sm btn-ghost">Chiudi</button>
                 </div>
                 
-                <div id="contextInfo" class="alert bg-base-200 text-sm mb-4 hidden">
-                    <span class="opacity-70">
-                        <strong>Contesto:</strong> <span id="contextText"></span>
-                    </span>
+                <div id="contextInfo" class="alert bg-base-200 text-sm mb-4 hidden flex-col items-start gap-2">
+                    <div class="font-bold">Contesto:</div>
+                    <div id="contextList" class="flex flex-col gap-1 w-full pl-2 border-l-2 border-base-300"></div>
                 </div>
 
                 <form id="ufficioForm" autocomplete="off" class="flex flex-col gap-4">
@@ -73,7 +72,10 @@
                     await loadSedi(socId);
                     const socName = await getCompanyName(socId);
                     
-                    let contextStr = `Società: ${socName}`;
+                    const contextItems = [
+                        { label: 'Società', value: socName, url: `/anagrafica/societa/dettaglio?id=${socId}` }
+                    ];
+                    
                     const sedeIdParam = "<%= sede_id || '' %>";
                     
                     if (sedeIdParam) {
@@ -81,13 +83,12 @@
                         const sedeSelect = document.getElementById('sede_id');
                         const selectedOption = sedeSelect.options[sedeSelect.selectedIndex];
                         if (selectedOption) {
-                            contextStr += ` | Sede: ${selectedOption.text}`;
+                            contextItems.push({ label: 'Sede', value: selectedOption.text, url: `/anagrafica/sedi/dettaglio?id=${sedeIdParam}` });
                             sedeSelect.closest('.form-control').classList.add('hidden');
                         }
                     }
                     
-                    document.getElementById('contextText').innerText = contextStr;
-                    document.getElementById('contextInfo').classList.remove('hidden');
+                    renderContext(contextItems);
                 }
             } else {
                 document.getElementById('pageTitle').innerText = "Modifica Ufficio";
@@ -168,13 +169,15 @@
                         document.getElementById('sede_id').value = item.sede_id || '';
                         
                         // Context Logic for Edit
-                        let contextStr = `Società: ${item.ragione_sociale}`;
+                        const contextItems = [
+                            { label: 'Società', value: item.ragione_sociale, url: `/anagrafica/societa/dettaglio?id=${item.societa_id}` }
+                        ];
+                        
                         if (item.sede_id) {
-                            contextStr += ` | ${item.collocazione}`;
+                            contextItems.push({ label: 'Sede', value: item.collocazione, url: `/anagrafica/sedi/dettaglio?id=${item.sede_id}` });
                             document.getElementById('sede_id').closest('.form-control').classList.add('hidden');
                         }
-                        document.getElementById('contextText').innerText = contextStr;
-                        document.getElementById('contextInfo').classList.remove('hidden');
+                        renderContext(contextItems);
                     } else {
                         alert("Ufficio non trovato.");
                     }
@@ -207,6 +210,21 @@
                 saveButton.innerHTML = 'Salva';
             });
         });
+
+        function renderContext(items) {
+            const list = document.getElementById('contextList');
+            list.innerHTML = '';
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-2';
+                div.innerHTML = `
+                    <span class="opacity-70 font-semibold min-w-[60px]">${item.label}:</span>
+                    <a href="#" onclick="window.open('${item.url}', '_blank', 'width=1024,height=768'); return false;" class="link link-primary hover:text-primary-focus font-medium">${item.value}</a>
+                `;
+                list.appendChild(div);
+            });
+            document.getElementById('contextInfo').classList.remove('hidden');
+        }
     </script>
 </body>
 </html>

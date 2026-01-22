@@ -16,10 +16,9 @@
                     <button onclick="window.close()" class="btn btn-sm btn-ghost">Chiudi</button>
                 </div>
                 
-                <div id="contextInfo" class="alert bg-base-200 text-sm mb-4 hidden">
-                    <span class="opacity-70">
-                        <strong>Contesto:</strong> <span id="contextText"></span>
-                    </span>
+                <div id="contextInfo" class="alert bg-base-200 text-sm mb-4 hidden flex-col items-start gap-2">
+                    <div class="font-bold">Contesto:</div>
+                    <div id="contextList" class="flex flex-col gap-1 w-full pl-2 border-l-2 border-base-300"></div>
                 </div>
 
                 <form id="referenteForm" autocomplete="off" class="flex flex-col gap-4">
@@ -112,14 +111,14 @@
         }
 
         async function loadContextInfo(societaId, sedeId, ufficioId) {
-            let contextStr = '';
+            const items = [];
             
             if (societaId) {
                 try {
                     const res = await fetch(`/api/anagrafica/societa?id=${societaId}`);
                     const data = await res.json();
                     if (data && data.length > 0) {
-                        contextStr += `Società: ${data[0].ragione_sociale}`;
+                        items.push({ label: 'Società', value: data[0].ragione_sociale, url: `/anagrafica/societa/dettaglio?id=${societaId}` });
                     }
                 } catch (e) { console.error("Errore caricamento società", e); }
             }
@@ -132,7 +131,7 @@
                         const s = data[0];
                         const partiIndirizzo = [s.via, s.numero_civico, s.cap, s.comune, s.provincia, s.paese].filter(p => p && String(p).trim() !== '').join(' ');
                         const tipo = s.tipo_sede_desc || s.tipo_sede || 'Sede';
-                        contextStr += ` | Sede: ${partiIndirizzo} (${tipo})`;
+                        items.push({ label: 'Sede', value: `${partiIndirizzo} (${tipo})`, url: `/anagrafica/sedi/dettaglio?id=${sedeId}` });
                     }
                 } catch (e) { console.error("Errore caricamento sede", e); }
             }
@@ -144,14 +143,13 @@
                     if (data && data.length > 0) {
                         const u = data[0];
                         const nome = u.nome_ufficio ? `${u.nome_ufficio} (${u.tipo_ufficio})` : u.tipo_ufficio;
-                        contextStr += ` | Ufficio: ${nome}`;
+                        items.push({ label: 'Ufficio', value: nome, url: `/anagrafica/uffici/dettaglio?id=${ufficioId}` });
                     }
                 } catch (e) { console.error("Errore caricamento ufficio", e); }
             }
 
-            if (contextStr) {
-                document.getElementById('contextText').innerText = contextStr;
-                document.getElementById('contextInfo').classList.remove('hidden');
+            if (items.length > 0) {
+                renderContext(items);
             }
         }
 
@@ -170,20 +168,21 @@
                         if(item.societa_id) document.getElementById('societa_id').value = item.societa_id;
 
                         // Context Logic for Edit
-                        let contextStr = `Società: ${item.ragione_sociale}`;
+                        const items = [
+                            { label: 'Società', value: item.ragione_sociale, url: `/anagrafica/societa/dettaglio?id=${item.societa_id}` }
+                        ];
                         
                         if (item.sede_id) {
                             const indirizzo = [item.via, item.numero_civico, item.cap, item.comune, item.provincia, item.paese].filter(p => p && String(p).trim() !== '').join(' ');
                             const tipo = item.tipo_sede || 'Sede';
-                            contextStr += ` | Sede: ${indirizzo} (${tipo})`;
+                            items.push({ label: 'Sede', value: `${indirizzo} (${tipo})`, url: `/anagrafica/sedi/dettaglio?id=${item.sede_id}` });
                         }
                         if (item.ufficio_id) {
                             const nomeUff = item.nome_ufficio ? `${item.nome_ufficio} (${item.tipo_ufficio})` : item.tipo_ufficio;
-                            contextStr += ` | Ufficio: ${nomeUff}`;
+                            items.push({ label: 'Ufficio', value: nomeUff, url: `/anagrafica/uffici/dettaglio?id=${item.ufficio_id}` });
                         }
                         
-                        document.getElementById('contextText').innerText = contextStr;
-                        document.getElementById('contextInfo').classList.remove('hidden');
+                        renderContext(items);
                     } else {
                         alert("Referente non trovato.");
                     }
@@ -217,6 +216,21 @@
                 saveButton.innerHTML = 'Salva';
             });
         });
+
+        function renderContext(items) {
+            const list = document.getElementById('contextList');
+            list.innerHTML = '';
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-2';
+                div.innerHTML = `
+                    <span class="opacity-70 font-semibold min-w-[60px]">${item.label}:</span>
+                    <a href="#" onclick="window.open('${item.url}', '_blank', 'width=1024,height=768'); return false;" class="link link-primary hover:text-primary-focus font-medium">${item.value}</a>
+                `;
+                list.appendChild(div);
+            });
+            document.getElementById('contextInfo').classList.remove('hidden');
+        }
     </script>
 </body>
 </html>
