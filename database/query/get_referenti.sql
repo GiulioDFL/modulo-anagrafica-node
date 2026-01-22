@@ -5,7 +5,12 @@ SELECT
     r.sede_id,
     s.cva_tipo_sede_id,
     ts.valore as tipo_sede,
-    i.via, i.numero_civico, i.cap, i.comune, i.provincia, i.paese,
+    i.via as sede_via, 
+    i.numero_civico as sede_numero_civico, 
+    i.cap as sede_cap, 
+    i.comune as sede_comune, 
+    i.provincia as sede_provincia, 
+    i.paese as sede_paese,
     r.ufficio_id,
     u.nome_ufficio,
     tu.valore as tipo_ufficio,
@@ -19,7 +24,7 @@ SELECT
         WHEN u.id IS NOT NULL THEN 'Ufficio: ' || COALESCE(u.nome_ufficio, tu.valore)
         WHEN s.id IS NOT NULL THEN 'Sede: ' || COALESCE(i.comune, '') || ' (' || COALESCE(ts.valore, 'Sede') || ')'
         ELSE 'Società'
-    END as contesto
+    END as contesto_sede
 FROM referenti r
 JOIN persone_fisiche p ON r.persona_id = p.id
 JOIN chiave_valore_attributo cva ON r.cva_tipo_ruolo_id = cva.id

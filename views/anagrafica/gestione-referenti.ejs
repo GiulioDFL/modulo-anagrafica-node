@@ -165,7 +165,7 @@
                                 <td class="font-bold">${r.cognome} ${r.nome}</td>
                                 <td><span class="badge badge-info">${r.ruolo || '-'}</span></td>
                                 ${(societaId || sedeId || ufficioId) ? '' : `<td>${r.societa_id ? `<a href="/anagrafica/dettaglio-societa/${r.societa_id}" target="_blank" class="link link-hover font-bold">${r.ragione_sociale || '-'}</a>` : (r.ragione_sociale || '-')}</td>`}
-                                ${(sedeId || ufficioId) ? '' : `<td>${r.sede_id ? `<a href="/anagrafica/dettaglio-sede/${r.sede_id}" target="_blank" class="link link-hover font-bold">${r.sede_desc || r.contesto_sede || '-'}</a>` : (r.sede_desc || r.contesto_sede || '-')}</td>`}
+                                ${(sedeId || ufficioId) ? '' : `<td>${r.sede_id ? `<a href="/anagrafica/dettaglio-sede/${r.sede_id}" target="_blank" class="link link-hover font-bold">${formatSede(r)}</a>` : formatSede(r)}</td>`}
                                 ${ufficioId ? '' : `<td>${r.ufficio_id ? `<a href="/anagrafica/ufficio/dettaglio?id=${r.ufficio_id}&societa_id=${r.societa_id}" target="_blank" class="link link-hover font-bold">${r.nome_ufficio || r.contesto_ufficio || '-'}</a>` : (r.nome_ufficio || r.contesto_ufficio || '-')}</td>`}
                                 <td class="actions-col text-right">
                                     <div class="flex justify-end gap-1">
@@ -178,6 +178,24 @@
                     });
                 })
                 .catch(err => console.error('Errore caricamento:', err));
+        }
+
+        function formatSede(r) {
+            if (!r.sede_id) return r.contesto_sede || '-';
+            if (r.sede_desc) return r.sede_desc;
+
+            const parti = [
+                r.sede_via,
+                r.sede_numero_civico,
+                r.sede_cap,
+                r.sede_comune,
+                r.sede_provincia,
+                r.sede_paese
+            ];
+            const indirizzo = parti.filter(p => p && String(p).trim() !== '').join(' ');
+            const tipo = r.tipo_sede_valore || r.tipo_sede || 'Sede';
+            
+            return indirizzo ? `${indirizzo} (${tipo})` : (r.contesto_sede || '-');
         }
 
         document.getElementById('filterForm').addEventListener('submit', (e) => { e.preventDefault(); loadReferenti(); });
