@@ -40,6 +40,7 @@ app.use(require('./routes/anagrafica/referenti-dettaglio'));
 app.use(require('./routes/anagrafica/referenti-add'));
 app.use(require('./routes/anagrafica/referenti-edit'));
 app.use(require('./routes/anagrafica/referenti-delete'));
+app.use(require('./routes/anagrafica/tipi_ruolo'));
 app.use(require('./routes/util/gemini'));
 app.use(require('./routes/settings'));
 

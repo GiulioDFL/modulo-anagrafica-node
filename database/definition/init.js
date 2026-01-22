@@ -288,6 +288,23 @@ WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'TIPI_UFF
 INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
 SELECT 'TIPI_UFFICIO', 'DIREZIONALE', 'Direzionale'
 WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'TIPI_UFFICIO' AND chiave = 'DIREZIONALE');
+
+-- Seed Dati: TIPI_RUOLO
+INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
+SELECT 'TIPI_RUOLO', 'LR', 'Legale Rappresentante'
+WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'TIPI_RUOLO' AND chiave = 'LR');
+
+INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
+SELECT 'TIPI_RUOLO', 'AMM', 'Amministratore'
+WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'TIPI_RUOLO' AND chiave = 'AMM');
+
+INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
+SELECT 'TIPI_RUOLO', 'DIP', 'Dipendente'
+WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'TIPI_RUOLO' AND chiave = 'DIP');
+
+INSERT INTO chiave_valore_attributo (gruppo, chiave, valore)
+SELECT 'TIPI_RUOLO', 'COLL', 'Collaboratore'
+WHERE NOT EXISTS (SELECT 1 FROM chiave_valore_attributo WHERE gruppo = 'TIPI_RUOLO' AND chiave = 'COLL');
 `;
 
 // Esecuzione dello schema
