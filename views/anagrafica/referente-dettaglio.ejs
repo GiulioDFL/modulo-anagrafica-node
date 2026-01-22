@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="corporate">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dettaglio Referente</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-base-200 min-h-screen py-8">
+    <div class="container mx-auto p-4 max-w-3xl">
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title text-2xl" id="pageTitle">Dettaglio Referente</h2>
+                    <button onclick="window.close()" class="btn btn-sm btn-ghost">Chiudi</button>
+                </div>
+                
+                <div id="contextInfo" class="alert bg-base-200 text-sm mb-4 hidden">
+                    <span class="opacity-70">
+                        <strong>Contesto:</strong> <span id="contextText"></span>
+                    </span>
+                </div>
+
+                <form id="referenteForm" autocomplete="off" class="flex flex-col gap-4">
+                    <input type="hidden" id="id" name="id" value="<%= id %>">
+                    <input type="hidden" id="societa_id" name="societa_id" value="<%= societa_id %>">
+
+                    <!-- Dati Persona -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label for="nome" class="label"><span class="label-text">Nome <span class="text-error">*</span></span></label>
+                            <input type="text" class="input input-bordered w-full" id="nome" name="nome" required>
+                        </div>
+                        <div class="form-control">
+                            <label for="cognome" class="label"><span class="label-text">Cognome <span class="text-error">*</span></span></label>
+                            <input type="text" class="input input-bordered w-full" id="cognome" name="cognome" required>
+                        </div>
+                    </div>
+
+                    <!-- Ruolo -->
+                    <div class="form-control">
+                        <label for="cva_tipo_ruolo_id" class="label"><span class="label-text">Ruolo <span class="text-error">*</span></span></label>
+                        <select class="select select-bordered w-full" id="cva_tipo_ruolo_id" name="cva_tipo_ruolo_id" required>
+                            <option value="">Seleziona Ruolo...</option>
+                        </select>
+                    </div>
+
+                    <!-- Contesto -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label for="sede_id" class="label"><span class="label-text">Sede (Opzionale)</span></label>
+                            <select class="select select-bordered w-full" id="sede_id" name="sede_id">
+                                <option value="">Nessuna Sede specifica</option>
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label for="ufficio_id" class="label"><span class="label-text">Ufficio (Opzionale)</span></label>
+                            <select class="select select-bordered w-full" id="ufficio_id" name="ufficio_id">
+                                <option value="">Nessun Ufficio specifico</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card-actions justify-end mt-4">
+                        <button type="submit" id="saveButton" class="btn btn-success text-white">Salva</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const id = "<%= id %>";
+        const isNew = id === 'nuova';
+        const form = document.getElementById('referenteForm');
+        const saveButton = document.getElementById('saveButton');
+        
+        // Parametri iniziali da EJS
+        const initialSedeId = "<%= sede_id || '' %>";
+        const initialUfficioId = "<%= ufficio_id || '' %>";
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const societaId = document.getElementById('societa_id').value;
+            
+            // Caricamento dati preliminari
+            await Promise.all([
+                loadRoles(),
+                loadSedi(societaId),
+                loadUffici(societaId)
+            ]);
+            
+            loadCompanyInfo(societaId);
+
+            if (isNew) {
+                document.getElementById('pageTitle').innerText = "Nuovo Referente";
+                form.action = "/anagrafica/gestione-referenti/add";
+                document.getElementById('id').value = '';
+                
+                // Pre-selezione se passati da URL
+                if (initialSedeId) document.getElementById('sede_id').value = initialSedeId;
+                if (initialUfficioId) {
+                    const ufficioSelect = document.getElementById('ufficio_id');
+                    ufficioSelect.value = initialUfficioId;
+                    
+                    // Se ho selezionato un ufficio ma non una sede, e l'ufficio ha una sede vincolata, seleziono la sede
+                    if (!initialSedeId) {
+                        const selectedOption = ufficioSelect.options[ufficioSelect.selectedIndex];
+                        if (selectedOption && selectedOption.dataset.sedeId) {
+                            document.getElementById('sede_id').value = selectedOption.dataset.sedeId;
+                        }
+                    }
+                }
+            } else {
+                document.getElementById('pageTitle').innerText = "Modifica Referente";
+                form.action = "/anagrafica/gestione-referenti/edit";
+                loadData();
+            }
+
+            applyContextLogic();
+        });
+
+        async function loadRoles() {
+            try {
+                const res = await fetch('/api/tipi-ruolo'); 
+                if(res.ok) {
+                    const data = await res.json();
+                    const select = document.getElementById('cva_tipo_ruolo_id');
+                    data.forEach(t => {
+                        const option = document.createElement('option');
+                        option.value = t.id;
+                        option.textContent = t.valore;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (e) { console.error("Errore caricamento ruoli", e); }
+        }
+
+        async function loadSedi(societaId) {
+            if (!societaId) return;
+            try {
+                const res = await fetch(`/api/anagrafica/sedi?societa_id=${societaId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const select = document.getElementById('sede_id');
+                    select.innerHTML = '<option value="">Nessuna Sede specifica</option>';
+                    data.forEach(s => {
+                        const option = document.createElement('option');
+                        option.value = s.id;
+                        const partiIndirizzo = [s.via, s.numero_civico, s.cap, s.comune, s.provincia, s.paese].filter(p => p && String(p).trim() !== '').join(' ');
+                        const tipo = s.tipo_sede_desc || s.tipo_sede || 'Sede';
+                        option.textContent = `${partiIndirizzo} (${tipo})`;
+                        select.appendChild(option);
+                    });
+                    applyContextLogic();
+                }
+            } catch (error) { console.error("Errore caricamento sedi:", error); }
+        }
+
+        async function loadUffici(societaId) {
+            if (!societaId) return;
+            try {
+                const res = await fetch(`/api/anagrafica/uffici?societa_id=${societaId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const select = document.getElementById('ufficio_id');
+                    select.innerHTML = '<option value="">Nessun Ufficio specifico</option>';
+                    data.forEach(u => {
+                        const option = document.createElement('option');
+                        option.value = u.id;
+                        if (u.sede_id) option.dataset.sedeId = u.sede_id;
+                        const nome = u.nome_ufficio ? `${u.nome_ufficio} (${u.tipo_ufficio})` : u.tipo_ufficio;
+                        select.appendChild(option);
+                    });
+                    applyContextLogic();
+                }
+            } catch (error) { console.error("Errore caricamento uffici:", error); }
+        }
+
+        function applyContextLogic() {
+            // Logica Sede
+            if (initialSedeId) {
+                const select = document.getElementById('sede_id');
+                const option = Array.from(select.options).find(o => o.value == initialSedeId);
+                if (option) {
+                    select.closest('.form-control').classList.add('hidden');
+                    // Aggiorna il testo del contesto se non è già stato fatto da loadData (caso Edit)
+                    // Nel caso New, costruiamo la stringa progressivamente
+                    updateContextTextNewMode();
+                    select.value = initialSedeId;
+                }
+            }
+            // Logica Ufficio
+            if (initialUfficioId) {
+                const select = document.getElementById('ufficio_id');
+                const option = Array.from(select.options).find(o => o.value == initialUfficioId);
+                if (option) {
+                    select.closest('.form-control').classList.add('hidden');
+                    updateContextTextNewMode();
+                    select.value = initialUfficioId;
+                }
+            }
+        }
+
+        function updateContextTextNewMode() {
+            const socName = document.getElementById('lbl_societa') ? document.getElementById('lbl_societa').innerText : '';
+            let text = `Società: ${socName}`;
+            
+            const sedeSelect = document.getElementById('sede_id');
+            if (initialSedeId && sedeSelect.options.length > 0) {
+                 const opt = Array.from(sedeSelect.options).find(o => o.value == initialSedeId);
+                 if(opt) text += ` | Sede: ${opt.text}`;
+            }
+
+            const uffSelect = document.getElementById('ufficio_id');
+            if (initialUfficioId && uffSelect.options.length > 0) {
+                 const opt = Array.from(uffSelect.options).find(o => o.value == initialUfficioId);
+                 if(opt) text += ` | Ufficio: ${opt.text}`;
+            }
+            
+            document.getElementById('contextText').innerText = text;
+            document.getElementById('contextInfo').classList.remove('hidden');
+        }
+
+        function loadCompanyInfo(societaId) {
+            if (!societaId) return;
+            fetch(`/api/anagrafica/societa?id=${societaId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        // Crea un elemento nascosto per mantenere il nome società per la logica New
+                        if(!document.getElementById('lbl_societa')) {
+                            const span = document.createElement('span');
+                            span.id = 'lbl_societa';
+                            span.style.display = 'none';
+                            document.body.appendChild(span);
+                        }
+                        document.getElementById('lbl_societa').innerText = data[0].ragione_sociale;
+                        if(isNew) updateContextTextNewMode();
+                    }
+                })
+                .catch(err => console.error("Errore caricamento società:", err));
+        }
+
+        function loadData() {
+            fetch(`/api/anagrafica/referenti?id=${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        const item = data[0];
+                        document.getElementById('nome').value = item.nome || '';
+                        document.getElementById('cognome').value = item.cognome || '';
+                        document.getElementById('cva_tipo_ruolo_id').value = item.cva_tipo_ruolo_id || '';
+                        document.getElementById('sede_id').value = item.sede_id || '';
+                        document.getElementById('ufficio_id').value = item.ufficio_id || '';
+                        
+                        if(item.societa_id && item.societa_id != document.getElementById('societa_id').value) {
+                             document.getElementById('societa_id').value = item.societa_id;
+                             loadCompanyInfo(item.societa_id);
+                        }
+
+                        // Context Logic for Edit
+                        let contextStr = `Società: ${item.ragione_sociale}`;
+                        
+                        if (item.sede_id) {
+                            const indirizzo = [item.via, item.numero_civico, item.cap, item.comune, item.provincia, item.paese].filter(p => p && String(p).trim() !== '').join(' ');
+                            const tipo = item.tipo_sede || 'Sede';
+                            contextStr += ` | Sede: ${indirizzo} (${tipo})`;
+                            document.getElementById('sede_id').closest('.form-control').classList.add('hidden');
+                        }
+                        if (item.ufficio_id) {
+                            const nomeUff = item.nome_ufficio ? `${item.nome_ufficio} (${item.tipo_ufficio})` : item.tipo_ufficio;
+                            contextStr += ` | Ufficio: ${nomeUff}`;
+                            document.getElementById('ufficio_id').closest('.form-control').classList.add('hidden');
+                        }
+                        
+                        document.getElementById('contextText').innerText = contextStr;
+                        document.getElementById('contextInfo').classList.remove('hidden');
+                    } else {
+                        alert("Referente non trovato.");
+                    }
+                })
+                .catch(err => console.error("Errore caricamento dati:", err));
+        }
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            saveButton.disabled = true;
+            saveButton.innerHTML = 'Salvataggio...';
+
+            const formData = new URLSearchParams(new FormData(this));
+            
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) alert("Errore: " + data.error);
+                else {
+                    alert(data.message);
+                    if (isNew) window.close();
+                }
+            })
+            .catch(err => alert('Errore salvataggio: ' + err))
+            .finally(() => {
+                saveButton.disabled = false;
+                saveButton.innerHTML = 'Salva';
+            });
+        });
+    </script>
+</body>
+</html>
