@@ -24,7 +24,9 @@
                 <form id="ufficioForm" autocomplete="off" class="flex flex-col gap-4">
                     <input type="hidden" id="id" name="id" value="<%= id %>">
                     <!-- Campi nascosti per il contesto -->
+                    <% if (id === 'nuova') { %>
                     <input type="hidden" id="societa_id" name="societa_id" value="<%= societa_id %>">
+                    <% } %>
 
                     <div class="form-control">
                         <label for="nome_ufficio" class="label"><span class="label-text">Nome Ufficio</span></label>
@@ -38,12 +40,14 @@
                         </select>
                     </div>
 
+                    <% if (id === 'nuova') { %>
                     <div class="form-control">
                         <label for="sede_id" class="label"><span class="label-text">Sede (Opzionale)</span></label>
                         <select class="select select-bordered w-full" id="sede_id" name="sede_id">
                             <option value="">Intera Società</option>
                         </select>
                     </div>
+                    <% } %>
 
                     <div class="card-actions justify-end mt-4">
                         <button type="submit" id="saveButton" class="btn btn-success text-white">Salva</button>
@@ -150,10 +154,8 @@
         }
 
         function loadData() {
-            // Passiamo societa_id se presente, altrimenti l'API ora supporta il caricamento solo per ID
-            const societaId = document.getElementById('societa_id').value;
-            let url = `/api/anagrafica/uffici?id=${id}`;
-            if (societaId) url += `&societa_id=${societaId}`;
+            // Caricamento solo per ID (le associazioni sono immutabili)
+            const url = `/api/anagrafica/uffici?id=${id}`;
 
             fetch(url)
                 .then(res => res.json())
@@ -162,11 +164,6 @@
                         const item = data[0];
                         document.getElementById('nome_ufficio').value = item.nome_ufficio || '';
                         document.getElementById('cva_tipo_ufficio_id').value = item.cva_tipo_ufficio_id;
-                        // Aggiorna i hidden fields se necessario (es. se aperti da link diretto senza contesto)
-                        document.getElementById('societa_id').value = item.societa_id;
-                        
-                        await loadSedi(item.societa_id);
-                        document.getElementById('sede_id').value = item.sede_id || '';
                         
                         // Context Logic for Edit
                         const contextItems = [
@@ -175,7 +172,6 @@
                         
                         if (item.sede_id) {
                             contextItems.push({ label: 'Sede', value: item.collocazione, url: `/anagrafica/dettaglio-sede/${item.sede_id}` });
-                            document.getElementById('sede_id').closest('.form-control').classList.add('hidden');
                         }
                         renderContext(contextItems);
                     } else {
