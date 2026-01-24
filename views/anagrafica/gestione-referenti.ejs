@@ -206,7 +206,21 @@
 
         document.getElementById('filterForm').addEventListener('submit', (e) => { e.preventDefault(); loadReferenti(); });
         function resetFilters() { document.getElementById('filterForm').reset(); loadReferenti(); }
-        function deleteReferente(id) { if(confirm('Eliminare questo referente?')) { /* Implementare chiamata API delete */ alert('Funzionalità delete da implementare'); } }
+        function deleteReferente(id) { 
+            if(confirm('Eliminare questo referente?')) { 
+                fetch('/anagrafica/gestione-referenti/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.error) alert('Errore: ' + data.error);
+                    else loadReferenti();
+                })
+                .catch(err => console.error(err));
+            } 
+        }
     </script>
 </body>
 </html>

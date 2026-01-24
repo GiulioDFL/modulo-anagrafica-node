@@ -23,9 +23,12 @@
 
                 <form id="referenteForm" autocomplete="off" class="flex flex-col gap-4">
                     <input type="hidden" id="id" name="id" value="<%= id %>">
+                    <input type="hidden" id="persona_id" name="persona_id">
+                    <% if (id === 'nuova') { %>
                     <input type="hidden" id="societa_id" name="societa_id" value="<%= societa_id %>">
                     <input type="hidden" id="sede_id" name="sede_id" value="<%= sede_id || '' %>">
                     <input type="hidden" id="ufficio_id" name="ufficio_id" value="<%= ufficio_id || '' %>">
+                    <% } %>
 
                     <!-- Dati Persona -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -68,11 +71,12 @@
         const initialSocietaId = "<%= societa_id || '' %>" || urlParams.get('societa_id') || '';
 
         document.addEventListener('DOMContentLoaded', async () => {
-            const societaInput = document.getElementById('societa_id');
-            if (!societaInput.value && initialSocietaId) {
-                societaInput.value = initialSocietaId;
+            let societaId = initialSocietaId;
+            if (isNew) {
+                const societaInput = document.getElementById('societa_id');
+                if (societaInput && !societaInput.value && initialSocietaId) societaInput.value = initialSocietaId;
+                societaId = societaInput ? societaInput.value : initialSocietaId;
             }
-            const societaId = societaInput.value;
             
             // Caricamento dati preliminari
             await loadRoles();
@@ -162,10 +166,8 @@
                         document.getElementById('nome').value = item.nome || '';
                         document.getElementById('cognome').value = item.cognome || '';
                         document.getElementById('cva_tipo_ruolo_id').value = item.cva_tipo_ruolo_id || '';
-                        document.getElementById('sede_id').value = item.sede_id || '';
-                        document.getElementById('ufficio_id').value = item.ufficio_id || '';
-                        
-                        if(item.societa_id) document.getElementById('societa_id').value = item.societa_id;
+                        // Impostiamo l'ID persona per l'update
+                        document.getElementById('persona_id').value = item.persona_id || '';
 
                         // Context Logic for Edit
                         const items = [
