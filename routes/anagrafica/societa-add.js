@@ -42,18 +42,39 @@ router.post('/anagrafica/gestione-societa/add', (req, res) => {
   const pIva = partita_iva || null;
   const cFisc = codice_fiscale || null;
   const cDest = codice_destinatario || null;
-  const settoreId = cva_settore_id || null;
+  const settori = Array.isArray(cva_settore_id) ? cva_settore_id : (cva_settore_id ? [cva_settore_id] : []);
 
-  const sql = `INSERT INTO societa (ragione_sociale, partita_iva, codice_fiscale, codice_destinatario, cva_settore_id) VALUES (?, ?, ?, ?, ?)`;
+  const sql = `INSERT INTO societa (ragione_sociale, partita_iva, codice_fiscale, codice_destinatario) VALUES (?, ?, ?, ?)`;
   
-  db.run(sql, [ragione_sociale, pIva, cFisc, cDest, settoreId], function(err) {
-    if (err) {
-      if (err.message.includes('UNIQUE constraint failed')) {
-        return res.status(400).json({ error: "Esiste già una società con questa Partita IVA." });
+  db.serialize(() => {
+    db.run("BEGIN TRANSACTION");
+    db.run(sql, [ragione_sociale, pIva, cFisc, cDest], function(err) {
+      if (err) {
+        db.run("ROLLBACK");
+        if (err.message.includes('UNIQUE constraint failed')) {
+          return res.status(400).json({ error: "Esiste già una società con questa Partita IVA." });
+        }
+        return res.status(500).json({ error: "Errore inserimento: " + err.message });
       }
-      return res.status(500).json({ error: "Errore inserimento: " + err.message });
-    }
-    res.json({ success: true, message: "Società inserita con successo", id: this.lastID });
+      
+      const societaId = this.lastID;
+
+      if (settori.length > 0) {
+        const stmt = db.prepare("INSERT INTO legm_societa_attributi (societa_id, attributo_id) VALUES (?, ?)");
+        settori.forEach(sid => stmt.run(societaId, sid));
+        stmt.finalize(err => {
+          if (err) {
+            db.run("ROLLBACK");
+            return res.status(500).json({ error: "Errore inserimento settori: " + err.message });
+          }
+          db.run("COMMIT");
+          res.json({ success: true, message: "Società inserita con successo", id: societaId });
+        });
+      } else {
+        db.run("COMMIT");
+        res.json({ success: true, message: "Società inserita con successo", id: societaId });
+      }
+    });
   });
 });
 

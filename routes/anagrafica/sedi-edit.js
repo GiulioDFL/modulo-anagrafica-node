@@ -23,13 +23,24 @@ router.post('/anagrafica/gestione-sedi/edit', (req, res) => {
     db.run(sqlIndirizzo, [via, numero_civico, cap, comune, provincia, paese, indirizzo_id], function(err) {
       if (err) { db.run("ROLLBACK"); return res.status(500).json({ error: "Errore update indirizzo: " + err.message }); }
 
-      // 2. Aggiornamento Sede
-      const sqlSede = `UPDATE sedi SET societa_id=?, cva_tipo_sede_id=? WHERE id=?`;
-      db.run(sqlSede, [societa_id, cva_tipo_sede_id, id], function(err) {
-        if (err) { db.run("ROLLBACK"); return res.status(500).json({ error: "Errore update sede: " + err.message }); }
-        
-        db.run("COMMIT");
-        res.json({ success: true, message: "Sede aggiornata con successo" });
+      // 2. Aggiornamento Collegamenti
+      // Aggiorna Società
+      db.run(`UPDATE legm_societa_sedi SET societa_id=? WHERE sede_id=?`, [societa_id, id], function(err) {
+        if (err) { db.run("ROLLBACK"); return res.status(500).json({ error: "Errore update link società: " + err.message }); }
+
+        // Aggiorna Tipo Sede (cerca l'attributo che appartiene al gruppo TIPI_SEDE per questa sede)
+        const sqlUpdateTipo = `
+          UPDATE legm_sedi_attributi 
+          SET attributo_id = ? 
+          WHERE sede_id = ? 
+          AND attributo_id IN (SELECT id FROM chiave_valore_attributo WHERE gruppo = 'TIPI_SEDE')
+        `;
+        db.run(sqlUpdateTipo, [cva_tipo_sede_id, id], function(err) {
+          if (err) { db.run("ROLLBACK"); return res.status(500).json({ error: "Errore update link tipo sede: " + err.message }); }
+          
+          db.run("COMMIT");
+          res.json({ success: true, message: "Sede aggiornata con successo" });
+        });
       });
     });
   });

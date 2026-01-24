@@ -19,7 +19,6 @@ router.get('/api/anagrafica/societa', (req, res) => {
     // Mappatura dei parametri per la query dinamica
     const params = {
       ':id': req.query.id || null,
-      ':settore_id': req.query.settore_id || null,
       ':ragione_sociale': req.query.ragione_sociale || '',
       ':partita_iva': req.query.partita_iva || '',
       ':codice_fiscale': req.query.codice_fiscale || '',

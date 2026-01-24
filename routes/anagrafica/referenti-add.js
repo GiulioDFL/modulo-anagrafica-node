@@ -15,15 +15,61 @@ router.post('/anagrafica/gestione-referenti/add', (req, res) => {
   const ufficioId = ufficio_id || null;
 
   const insertReferente = (pId) => {
-    const sql = `INSERT INTO referenti (societa_id, sede_id, ufficio_id, persona_id, cva_tipo_ruolo_id) VALUES (?, ?, ?, ?, ?)`;
-    db.run(sql, [societa_id, sedeId, ufficioId, pId, cva_tipo_ruolo_id], function(err) {
-      if (err) {
-        if (err.message.includes('UNIQUE constraint failed')) {
-          return res.status(400).json({ error: "Questa persona è già referente per questa società." });
+    db.serialize(() => {
+      db.run("BEGIN TRANSACTION");
+
+      // 1. Crea il referente (entità vuota)
+      db.run(`INSERT INTO referenti DEFAULT VALUES`, [], function(err) {
+        if (err) {
+          db.run("ROLLBACK");
+          return res.status(500).json({ error: "Errore creazione referente: " + err.message });
         }
-        return res.status(500).json({ error: "Errore inserimento referente: " + err.message });
-      }
-      res.json({ success: true, message: "Referente inserito con successo", id: this.lastID });
+        
+        const referenteId = this.lastID;
+
+        // Helper per gestire errori nella catena
+        const handleError = (errMsg) => {
+          db.run("ROLLBACK");
+          res.status(500).json({ error: errMsg });
+        };
+
+        // 2. Collega Persona
+        db.run(`INSERT INTO legm_referenti_persone (referente_id, persona_id) VALUES (?, ?)`, [referenteId, pId], (err) => {
+          if (err) return handleError("Errore collegamento persona: " + err.message);
+
+          // 3. Collega Ruolo
+          db.run(`INSERT INTO legm_referenti_attributi (referente_id, attributo_id) VALUES (?, ?)`, [referenteId, cva_tipo_ruolo_id], (err) => {
+            if (err) return handleError("Errore collegamento ruolo: " + err.message);
+
+            // 4. Collega Società
+            db.run(`INSERT INTO legm_societa_referenti (societa_id, referente_id) VALUES (?, ?)`, [societa_id, referenteId], (err) => {
+              if (err) return handleError("Errore collegamento società: " + err.message);
+
+              // 5. Opzionale: Collega Sede
+              const stepSede = (cb) => {
+                if (!sedeId) return cb();
+                db.run(`INSERT INTO legm_sedi_referenti (sede_id, referente_id) VALUES (?, ?)`, [sedeId, referenteId], cb);
+              };
+
+              // 6. Opzionale: Collega Ufficio
+              const stepUfficio = (cb) => {
+                if (!ufficioId) return cb();
+                db.run(`INSERT INTO legm_uffici_referenti (ufficio_id, referente_id) VALUES (?, ?)`, [ufficioId, referenteId], cb);
+              };
+
+              stepSede((err) => {
+                if (err) return handleError("Errore collegamento sede: " + err.message);
+                stepUfficio((err) => {
+                  if (err) return handleError("Errore collegamento ufficio: " + err.message);
+                  
+                  db.run("COMMIT");
+                  res.json({ success: true, message: "Referente inserito con successo", id: referenteId });
+                });
+              });
+            });
+          });
+        });
+      });
     });
   };
 

@@ -42,18 +42,44 @@ router.post('/anagrafica/gestione-societa/edit', (req, res) => {
   const pIva = partita_iva || null;
   const cFisc = codice_fiscale || null;
   const cDest = codice_destinatario || null;
-  const settoreId = cva_settore_id || null;
+  const settori = Array.isArray(cva_settore_id) ? cva_settore_id : (cva_settore_id ? [cva_settore_id] : []);
 
-  const sql = `UPDATE societa SET ragione_sociale = ?, partita_iva = ?, codice_fiscale = ?, codice_destinatario = ?, cva_settore_id = ? WHERE id = ?`;
+  const sql = `UPDATE societa SET ragione_sociale = ?, partita_iva = ?, codice_fiscale = ?, codice_destinatario = ? WHERE id = ?`;
   
-  db.run(sql, [ragione_sociale, pIva, cFisc, cDest, settoreId, id], function(err) {
-    if (err) {
-      if (err.message.includes('UNIQUE constraint failed')) {
-        return res.status(400).json({ error: "Esiste già una società con questa Partita IVA." });
+  db.serialize(() => {
+    db.run("BEGIN TRANSACTION");
+    db.run(sql, [ragione_sociale, pIva, cFisc, cDest, id], function(err) {
+      if (err) {
+        db.run("ROLLBACK");
+        if (err.message.includes('UNIQUE constraint failed')) {
+          return res.status(400).json({ error: "Esiste già una società con questa Partita IVA." });
+        }
+        return res.status(500).json({ error: "Errore aggiornamento: " + err.message });
       }
-      return res.status(500).json({ error: "Errore aggiornamento: " + err.message });
-    }
-    res.json({ success: true, message: "Società aggiornata con successo", changes: this.changes });
+
+      // Cancella i settori esistenti per questa società
+      const deleteSql = `DELETE FROM legm_societa_attributi WHERE societa_id = ? AND attributo_id IN (SELECT id FROM chiave_valore_attributo WHERE gruppo = 'SETTORI')`;
+      
+      db.run(deleteSql, [id], function(errDel) {
+        if (errDel) {
+          db.run("ROLLBACK");
+          return res.status(500).json({ error: "Errore aggiornamento settori (delete): " + errDel.message });
+        }
+
+        if (settori.length > 0) {
+          const stmt = db.prepare("INSERT INTO legm_societa_attributi (societa_id, attributo_id) VALUES (?, ?)");
+          settori.forEach(sid => stmt.run(id, sid));
+          stmt.finalize(errIns => {
+             if (errIns) { db.run("ROLLBACK"); return res.status(500).json({ error: "Errore inserimento settori" }); }
+             db.run("COMMIT");
+             res.json({ success: true, message: "Società aggiornata con successo" });
+          });
+        } else {
+          db.run("COMMIT");
+          res.json({ success: true, message: "Società aggiornata con successo" });
+        }
+      });
+    });
   });
 });
 
