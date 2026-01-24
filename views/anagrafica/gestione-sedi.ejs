@@ -134,11 +134,7 @@
                                         <a href="/anagrafica/gestione-referenti?societa_id=${societaId}&sede_id=${item.id}" target="_blank" class="btn btn-sm btn-square btn-warning text-white" title="Gestione Referenti Sede">
                                             <i class="bi bi-people"></i>
                                         </a>
-                                        <form action="/anagrafica/gestione-sedi/delete" method="POST" class="inline-block" onsubmit="return confirmDelete(this);">
-                                            <input type="hidden" name="id" value="${item.id}">
-                                            <input type="hidden" name="confirm_prompt">
-                                            <button type="submit" class="btn btn-sm btn-square btn-error text-white" title="Elimina"><i class="bi bi-trash"></i></button>
-                                        </form>
+                                        <button onclick="deleteSede(${item.id})" class="btn btn-sm btn-square btn-error text-white" title="Elimina"><i class="bi bi-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>`;
@@ -148,7 +144,17 @@
 
         document.getElementById('filterForm').addEventListener('submit', (e) => { e.preventDefault(); loadSedi(); });
         function resetFilters() { document.getElementById('filterForm').reset(); loadSedi(); }
-        function confirmDelete(f) { const i = prompt("Scrivi 'elimina' per confermare:"); if(i==='elimina'){ f.confirm_prompt.value=i; return true; } return false; }
+        
+        function deleteSede(id) {
+            const i = prompt("Scrivi 'elimina' per confermare:");
+            if (i !== 'elimina') return;
+            
+            fetch('/anagrafica/gestione-sedi/delete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id: id, confirm_prompt: i })
+            }).then(() => loadSedi());
+        }
     </script>
 </body>
 </html>

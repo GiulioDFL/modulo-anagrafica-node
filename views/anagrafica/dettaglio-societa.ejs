@@ -34,12 +34,6 @@
                         </div>
                     </div>
                     <div class="form-control">
-                        <label for="cva_settore_id" class="label"><span class="label-text">Settore</span></label>
-                        <select class="select select-bordered w-full" id="cva_settore_id" name="cva_settore_id">
-                            <option value="">Seleziona...</option>
-                        </select>
-                    </div>
-                    <div class="form-control">
                         <label for="codice_destinatario" class="label"><span class="label-text">Codice Destinatario</span></label>
                         <input type="text" class="input input-bordered w-full" id="codice_destinatario" name="codice_destinatario">
                     </div>
@@ -58,8 +52,7 @@
         const form = document.getElementById('societaForm');
         const saveButton = document.getElementById('saveButton');
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            await loadSettori();
+        document.addEventListener('DOMContentLoaded', () => {
             if (isNew) {
                 document.getElementById('pageTitle').innerText = "Nuova Società";
                 form.action = "/anagrafica/gestione-societa/add";
@@ -71,18 +64,6 @@
             }
         });
 
-        async function loadSettori() {
-            const res = await fetch('/api/anagrafica/settori');
-            const data = await res.json();
-            const select = document.getElementById('cva_settore_id');
-            data.forEach(s => {
-                const option = document.createElement('option');
-                option.value = s.id;
-                option.textContent = s.valore;
-                select.appendChild(option);
-            });
-        }
-
         function loadData() {
             fetch(`/api/anagrafica/societa?id=${id}`)
                 .then(res => res.json())
@@ -93,7 +74,6 @@
                         document.getElementById('partita_iva').value = item.partita_iva || '';
                         document.getElementById('codice_fiscale').value = item.codice_fiscale || '';
                         document.getElementById('codice_destinatario').value = item.codice_destinatario || '';
-                        document.getElementById('cva_settore_id').value = item.cva_settore_id || '';
                     } else {
                         alert("Società non trovata.");
                     }
