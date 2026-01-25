@@ -70,6 +70,7 @@
                                 <th>Partita IVA</th>
                                 <th>Codice Fiscale</th>
                                 <th>Cod. Dest.</th>
+                                <th>Settori</th>
                                 <th class="actions-col text-right pr-4">Azioni</th>
                             </tr>
                         </thead>
@@ -123,6 +124,11 @@
                                 <td>${item.partita_iva || ''}</td>
                                 <td>${item.codice_fiscale || ''}</td>
                                 <td>${item.codice_destinatario || ''}</td>
+                                <td>
+                                    <div class="flex flex-wrap gap-1">
+                                        ${item.settori ? item.settori.split(', ').map(tag => `<span class="badge badge-ghost bg-blue-50 text-blue-700 border-blue-200 h-auto py-1 px-2 rounded-lg text-xs">${tag}</span>`).join('') : ''}
+                                    </div>
+                                </td>
                                 <td class="actions-col text-right">
                                     <div class="flex justify-end gap-1">
                                         <a href="/anagrafica/dettaglio-societa/${item.id}" target="_blank" class="btn btn-sm btn-square btn-primary" title="Dettaglio/Modifica">

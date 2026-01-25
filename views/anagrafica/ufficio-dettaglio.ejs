@@ -33,11 +33,8 @@
                         <input type="text" class="input input-bordered w-full" id="nome_ufficio" name="nome_ufficio">
                     </div>
 
-                    <div class="form-control">
-                        <label for="cva_tipo_ufficio_id" class="label"><span class="label-text">Tipo Ufficio <span class="text-error">*</span></span></label>
-                        <select class="select select-bordered w-full" id="cva_tipo_ufficio_id" name="cva_tipo_ufficio_id" required>
-                            <option value="">Seleziona Tipo...</option>
-                        </select>
+                    <!-- Componente Multi-Tag per Tipo Ufficio -->
+                    <div id="tipoUfficioContainer" class="form-control">
                     </div>
 
                     <% if (id === 'nuova') { %>
@@ -64,7 +61,15 @@
         const saveButton = document.getElementById('saveButton');
 
         document.addEventListener('DOMContentLoaded', async () => {
-            await loadDropdowns();
+            // Inizializzazione Componente Multi-Tag
+            await initMultiTag({
+                containerId: 'tipoUfficioContainer',
+                group: 'TIPI_UFFICIO',
+                entityId: isNew ? null : id,
+                entityType: 'uffici',
+                inputName: 'cva_tipo_ufficio_id',
+                label: 'Tipo Ufficio'
+            });
             
             if (isNew) {
                 document.getElementById('pageTitle').innerText = "Nuovo Ufficio";
@@ -100,18 +105,6 @@
                 loadData();
             }
         });
-
-        async function loadDropdowns() {
-            const res = await fetch('/api/tipi-ufficio');
-            const data = await res.json();
-            const select = document.getElementById('cva_tipo_ufficio_id');
-            data.forEach(t => {
-                const option = document.createElement('option');
-                option.value = t.id;
-                option.textContent = t.valore;
-                select.appendChild(option);
-            });
-        }
 
         async function loadSedi(societaId) {
             if (!societaId) return;
@@ -163,7 +156,6 @@
                     if (data && data.length > 0) {
                         const item = data[0];
                         document.getElementById('nome_ufficio').value = item.nome_ufficio || '';
-                        document.getElementById('cva_tipo_ufficio_id').value = item.cva_tipo_ufficio_id;
                         
                         // Context Logic for Edit
                         const contextItems = [
@@ -220,6 +212,77 @@
                 list.appendChild(div);
             });
             document.getElementById('contextInfo').classList.remove('hidden');
+        }
+
+        // Componente Multi-Tag Standardizzato
+        async function initMultiTag(config) {
+            const { containerId, group, entityId, entityType, inputName, label } = config;
+            const container = document.getElementById(containerId);
+            
+            container.innerHTML = `
+                <label class="label"><span class="label-text">${label} <span class="text-error">*</span></span></label>
+                <div class="flex flex-wrap gap-2 mb-2 p-2 border border-base-300 rounded-lg min-h-[3rem] bg-base-100" id="tags_${inputName}"></div>
+                <select class="select select-bordered w-full" id="select_${inputName}">
+                    <option value="">Seleziona per aggiungere...</option>
+                </select>
+                <div id="inputs_${inputName}"></div>
+            `;
+            
+            const tagsContainer = document.getElementById(`tags_${inputName}`);
+            const select = document.getElementById(`select_${inputName}`);
+            const inputsContainer = document.getElementById(`inputs_${inputName}`);
+            let selectedIds = new Set();
+
+            // Carica Opzioni
+            try {
+                const res = await fetch(`/api/attributes/${group}`);
+                const options = await res.json();
+                options.forEach(opt => {
+                    const o = document.createElement('option');
+                    o.value = opt.id;
+                    o.textContent = opt.valore;
+                    select.appendChild(o);
+                });
+            } catch(e) { console.error('Errore caricamento opzioni', e); }
+
+            // Carica Tag Esistenti
+            if (entityId) {
+                try {
+                    const res = await fetch(`/api/attributes/${entityType}/${entityId}/tags?group=${group}`);
+                    const tags = await res.json();
+                    tags.forEach(t => addTag(t.id, t.valore));
+                } catch(e) { console.error('Errore caricamento tag', e); }
+            }
+
+            select.addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (!val) return;
+                const text = e.target.options[e.target.selectedIndex].text;
+                addTag(val, text);
+                e.target.value = '';
+            });
+
+            function addTag(id, text) {
+                if (selectedIds.has(String(id))) return;
+                selectedIds.add(String(id));
+                const tag = document.createElement('div');
+                tag.className = 'badge badge-primary gap-2 p-3';
+                tag.innerHTML = `${text} <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-4 h-4 stroke-current cursor-pointer hover:text-red-500"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
+                tag.querySelector('svg').onclick = () => { selectedIds.delete(String(id)); tag.remove(); updateInputs(); };
+                tagsContainer.appendChild(tag);
+                updateInputs();
+            }
+
+            function updateInputs() {
+                inputsContainer.innerHTML = '';
+                selectedIds.forEach(id => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = inputName;
+                    input.value = id;
+                    inputsContainer.appendChild(input);
+                });
+            }
         }
     </script>
 </body>

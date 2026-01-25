@@ -58,7 +58,7 @@ router.post('/anagrafica/gestione-societa/edit', (req, res) => {
       }
 
       // Cancella i settori esistenti per questa società
-      const deleteSql = `DELETE FROM legm_societa_attributi WHERE societa_id = ? AND attributo_id IN (SELECT id FROM chiave_valore_attributo WHERE gruppo = 'SETTORI')`;
+      const deleteSql = `DELETE FROM legm_societa_attributi WHERE societa_id = ? AND attributo_id IN (SELECT id FROM chiave_valore_attributo WHERE gruppo = 'TIPI_SETTORE')`;
       
       db.run(deleteSql, [id], function(errDel) {
         if (errDel) {

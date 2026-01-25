@@ -42,6 +42,7 @@ app.use(require('./routes/anagrafica/referenti-edit'));
 app.use(require('./routes/anagrafica/referenti-delete'));
 app.use(require('./routes/anagrafica/tipi_ruolo'));
 app.use(require('./routes/util/gemini'));
+app.use(require('./routes/util/attributes'));
 app.use(require('./routes/settings'));
 
 // Avvio del server

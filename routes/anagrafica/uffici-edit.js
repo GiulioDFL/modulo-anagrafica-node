@@ -7,8 +7,12 @@ router.post('/anagrafica/gestione-uffici/edit', (req, res) => {
   let { id, cva_tipo_ufficio_id, nome_ufficio } = req.body;
 
   if (!id) return res.status(400).json({ error: "ID ufficio mancante." });
-  if (!cva_tipo_ufficio_id) {
-    return res.status(400).json({ error: "Il Tipo Ufficio è obbligatorio." });
+  
+  // Gestione array per multi-tag
+  const tipi = Array.isArray(cva_tipo_ufficio_id) ? cva_tipo_ufficio_id : (cva_tipo_ufficio_id ? [cva_tipo_ufficio_id] : []);
+
+  if (tipi.length === 0) {
+    return res.status(400).json({ error: "Almeno un Tipo Ufficio è obbligatorio." });
   }
 
   // Formattazione
@@ -26,8 +30,11 @@ router.post('/anagrafica/gestione-uffici/edit', (req, res) => {
       db.run("DELETE FROM legm_uffici_attributi WHERE ufficio_id=?", [id], (err) => {
         if (err) { db.run("ROLLBACK"); return res.status(500).json({ error: "Errore pulizia tipo: " + err.message }); }
         
-        db.run("INSERT INTO legm_uffici_attributi (ufficio_id, attributo_id) VALUES (?, ?)", [id, cva_tipo_ufficio_id], (err) => {
-          if (err) { db.run("ROLLBACK"); return res.status(500).json({ error: "Errore insert tipo: " + err.message }); }
+        const stmt = db.prepare("INSERT INTO legm_uffici_attributi (ufficio_id, attributo_id) VALUES (?, ?)");
+        tipi.forEach(tid => stmt.run(id, tid));
+        
+        stmt.finalize(err => {
+          if (err) { db.run("ROLLBACK"); return res.status(500).json({ error: "Errore insert tipi: " + err.message }); }
           db.run("COMMIT");
           res.json({ success: true, message: "Ufficio aggiornato con successo" });
         });
