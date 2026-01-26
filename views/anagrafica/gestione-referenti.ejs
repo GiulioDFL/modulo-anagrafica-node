@@ -127,7 +127,11 @@
                             }
 
                             if (u) {
-                                const labelUfficio = u.nome_ufficio ? `${u.nome_ufficio} (${u.tipo_ufficio})` : u.tipo_ufficio;
+                                const tipi = (u.tipi_ufficio || '').split(',').filter(t => t.trim()).join(', ');
+                                let labelUfficio = u.nome_ufficio || '';
+                                if (tipi) {
+                                    labelUfficio = labelUfficio ? `${labelUfficio} (${tipi})` : tipi;
+                                }
                                 hierarchyHtml += ` <i class="bi bi-chevron-right mx-1"></i> Ufficio: <a href="/anagrafica/ufficio/dettaglio?id=${u.id}&societa_id=${u.societa_id}" target="_blank" class="link link-hover font-bold">${labelUfficio}</a>`;
                             }
                             document.getElementById('hierarchyInfo').innerHTML = hierarchyHtml;
