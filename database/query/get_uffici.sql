@@ -3,7 +3,7 @@ SELECT
     lsu.societa_id, 
     lsed.sede_id,
     u.nome_ufficio,
-    GROUP_CONCAT(DISTINCT cva.valore, ', ') as tipi_ufficio,
+    GROUP_CONCAT(DISTINCT cva.valore) as tipi_ufficio,
     soc.ragione_sociale,
     i.via as sede_via,
     i.numero_civico as sede_numero_civico,

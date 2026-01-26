@@ -130,7 +130,7 @@
 
                     data.forEach(u => {
                         const tipiUfficioHtml = (u.tipi_ufficio || '')
-                            .split(', ')
+                            .split(',')
                             .filter(tag => tag)
                             .map(tag => `<span class="badge badge-ghost bg-blue-50 text-blue-700 border-blue-200 h-auto py-1 px-2 rounded-lg text-xs">${tag}</span>`)
                             .join('');
