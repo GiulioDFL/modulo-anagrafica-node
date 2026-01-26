@@ -129,7 +129,13 @@
                     }
 
                     data.forEach(u => {
-                        const tipoSede = u.sede_tipo || u.tipo_sede || u.tipo_sede_desc || '';
+                        const tipiUfficioHtml = (u.tipi_ufficio || '')
+                            .split(', ')
+                            .filter(tag => tag)
+                            .map(tag => `<span class="badge badge-ghost bg-blue-50 text-blue-700 border-blue-200 h-auto py-1 px-2 rounded-lg text-xs">${tag}</span>`)
+                            .join('');
+
+                        const tipoSede = u.sede_tipo || '';
 
                         // Costruzione etichetta Collocazione (Sede)
                         const indirizzo = [u.sede_via || u.via || u.indirizzo, u.sede_numero_civico || u.numero_civico].filter(x => x && String(x).trim()).join(' ');
@@ -150,7 +156,7 @@
                             <tr class="hover">
                                 ${ (societaId || sedeId) ? '' : `<td>${u.societa_id ? `<a href="/anagrafica/dettaglio-societa/${u.societa_id}" target="_blank" class="link link-hover font-bold">${u.ragione_sociale || '-'}</a>` : (u.ragione_sociale || '-')}</td>` }
                                 <td class="font-bold">${u.nome_ufficio || '-'}</td>
-                                <td><span class="badge badge-info">${u.tipo_ufficio}</span></td>
+                                <td><div class="flex flex-wrap gap-1">${tipiUfficioHtml || '-'}</div></td>
                                 ${sedeId ? '' : `<td>${u.sede_id ? `<a href="/anagrafica/dettaglio-sede/${u.sede_id}" target="_blank" class="link link-hover font-bold">${labelSede}</a>` : labelSede}</td>`}
                                 <td class="actions-col text-right">
                                     <div class="flex justify-end gap-1">

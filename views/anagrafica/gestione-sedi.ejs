@@ -55,7 +55,7 @@
                         <thead class="bg-base-200 text-base-content uppercase text-xs font-bold">
                             <tr>
                                 <th id="th-societa">Società</th>
-                                <th>Tipo Sede</th>
+                                <th>Tipi</th>
                                 <th>Indirizzo</th>
                                 <th class="actions-col text-right pr-4">Azioni</th>
                             </tr>
@@ -120,10 +120,16 @@
                         const localita = [item.cap, item.comune, item.provincia ? `(${item.provincia})` : ''].filter(x => x).join(' ');
                         const indirizzoCompleto = [indirizzo, localita].filter(x => x).join(', ');
 
+                        const tipiSedeHtml = (item.tipi_sede || '')
+                            .split(', ')
+                            .filter(tag => tag)
+                            .map(tag => `<span class="badge badge-ghost bg-blue-50 text-blue-700 border-blue-200 h-auto py-1 px-2 rounded-lg text-xs">${tag}</span>`)
+                            .join('');
+
                         tbody.innerHTML += `
                             <tr class="hover">
                                 ${societaId ? '' : `<td>${item.societa_id ? `<a href="/anagrafica/dettaglio-societa/${item.societa_id}" target="_blank" class="link link-hover font-bold">${item.ragione_sociale || '-'}</a>` : (item.ragione_sociale || '-')}</td>`}
-                                <td><span class="badge badge-info">${item.tipo_sede}</span></td>
+                                <td><div class="flex flex-wrap gap-1">${tipiSedeHtml || '-'}</div></td>
                                 <td class="font-bold">${indirizzoCompleto}</td>
                                 <td class="actions-col text-right">
                                     <div class="flex justify-end gap-1">

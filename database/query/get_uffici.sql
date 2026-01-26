@@ -1,10 +1,9 @@
 SELECT 
     u.id, 
     lsu.societa_id, 
-    lsed.sede_id, 
-    lua.attributo_id as cva_tipo_ufficio_id, 
+    lsed.sede_id,
     u.nome_ufficio,
-    cva.valore as tipo_ufficio,
+    GROUP_CONCAT(DISTINCT cva.valore, ', ') as tipi_ufficio,
     soc.ragione_sociale,
     i.via as sede_via,
     i.numero_civico as sede_numero_civico,
@@ -21,7 +20,7 @@ FROM uffici u
 JOIN legm_societa_uffici lsu ON u.id = lsu.ufficio_id
 JOIN societa soc ON lsu.societa_id = soc.id
 LEFT JOIN legm_uffici_attributi lua ON u.id = lua.ufficio_id
-LEFT JOIN chiave_valore_attributo cva ON lua.attributo_id = cva.id
+LEFT JOIN chiave_valore_attributo cva ON lua.attributo_id = cva.id AND cva.gruppo = 'TIPI_UFFICIO'
 LEFT JOIN legm_sedi_uffici lsed ON u.id = lsed.ufficio_id
 LEFT JOIN sedi s ON lsed.sede_id = s.id
 LEFT JOIN legm_sedi_attributi lsa ON s.id = lsa.sede_id

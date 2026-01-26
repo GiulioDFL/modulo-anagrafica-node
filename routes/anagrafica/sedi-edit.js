@@ -15,6 +15,8 @@ router.post('/anagrafica/gestione-sedi/edit', (req, res) => {
   provincia = (provincia || '').trim().toUpperCase();
   paese = (paese || '').trim().toUpperCase();
 
+  const tipiSede = Array.isArray(cva_tipo_sede_id) ? cva_tipo_sede_id : (cva_tipo_sede_id ? [cva_tipo_sede_id] : []);
+
   db.serialize(() => {
     db.run("BEGIN TRANSACTION");
 
@@ -23,19 +25,30 @@ router.post('/anagrafica/gestione-sedi/edit', (req, res) => {
     db.run(sqlIndirizzo, [via, numero_civico, cap, comune, provincia, paese, indirizzo_id], function(err) {
       if (err) { db.run("ROLLBACK"); return res.status(500).json({ error: "Errore update indirizzo: " + err.message }); }
 
-      // 2. Aggiornamento Collegamenti
-      // Aggiorna Tipo Sede (cerca l'attributo che appartiene al gruppo TIPI_SEDE per questa sede)
-      const sqlUpdateTipo = `
-        UPDATE legm_sedi_attributi 
-        SET attributo_id = ? 
-        WHERE sede_id = ? 
-        AND attributo_id IN (SELECT id FROM chiave_valore_attributo WHERE gruppo = 'TIPI_SEDE')
-      `;
-      db.run(sqlUpdateTipo, [cva_tipo_sede_id, id], function(err) {
-        if (err) { db.run("ROLLBACK"); return res.status(500).json({ error: "Errore update link tipo sede: " + err.message }); }
-        
-        db.run("COMMIT");
-        res.json({ success: true, message: "Sede aggiornata con successo" });
+      // 2. Aggiornamento Tipi Sede (delete/insert)
+      const deleteSql = `DELETE FROM legm_sedi_attributi WHERE sede_id = ? AND attributo_id IN (SELECT id FROM chiave_valore_attributo WHERE gruppo = 'TIPI_SEDE')`;
+      
+      db.run(deleteSql, [id], function(errDel) {
+        if (errDel) {
+          db.run("ROLLBACK");
+          return res.status(500).json({ error: "Errore aggiornamento tipi sede (delete): " + errDel.message });
+        }
+
+        if (tipiSede.length > 0) {
+          const stmt = db.prepare("INSERT INTO legm_sedi_attributi (sede_id, attributo_id) VALUES (?, ?)");
+          tipiSede.forEach(tid => stmt.run(id, tid));
+          stmt.finalize(errIns => {
+             if (errIns) { 
+                db.run("ROLLBACK"); 
+                return res.status(500).json({ error: "Errore inserimento tipi sede: " + errIns.message }); 
+             }
+             db.run("COMMIT");
+             res.json({ success: true, message: "Sede aggiornata con successo" });
+          });
+        } else {
+          db.run("COMMIT");
+          res.json({ success: true, message: "Sede aggiornata con successo" });
+        }
       });
     });
   });

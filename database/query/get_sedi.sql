@@ -9,15 +9,14 @@ SELECT
     i.comune,
     i.provincia,
     i.paese,
-    lsa.attributo_id as cva_tipo_sede_id,
-    cva.valore as tipo_sede
+    GROUP_CONCAT(cva.valore, ', ') as tipi_sede
 FROM sedi s
 JOIN legm_societa_sedi lss ON s.id = lss.sede_id
 JOIN societa soc ON lss.societa_id = soc.id
 JOIN legm_sedi_indirizzi lsi ON s.id = lsi.sede_id
 JOIN indirizzi i ON lsi.indirizzo_id = i.id
-JOIN legm_sedi_attributi lsa ON s.id = lsa.sede_id
-JOIN chiave_valore_attributo cva ON lsa.attributo_id = cva.id
+LEFT JOIN legm_sedi_attributi lsa ON s.id = lsa.sede_id
+LEFT JOIN chiave_valore_attributo cva ON lsa.attributo_id = cva.id
 WHERE 1=1
   AND (:id IS NULL OR s.id = :id)
   AND (:societa_id IS NULL OR lss.societa_id = :societa_id)
@@ -29,4 +28,5 @@ WHERE 1=1
        OR LOWER(COALESCE(i.provincia, '')) LIKE :search
        OR LOWER(COALESCE(cva.valore, '')) LIKE :search
   )
-ORDER BY soc.ragione_sociale, cva.valore
+GROUP BY s.id
+ORDER BY soc.ragione_sociale
