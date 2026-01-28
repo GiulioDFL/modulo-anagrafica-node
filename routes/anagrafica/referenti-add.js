@@ -6,8 +6,10 @@ const db = require('../../database/definition/init');
 router.post('/anagrafica/gestione-referenti/add', (req, res) => {
   let { societa_id, sede_id, ufficio_id, persona_id, cva_tipo_ruolo_id, nome, cognome } = req.body;
 
-  if (!societa_id || !cva_tipo_ruolo_id) {
-    return res.status(400).json({ error: "Società e Ruolo sono obbligatori." });
+  const ruoli = Array.isArray(cva_tipo_ruolo_id) ? cva_tipo_ruolo_id : (cva_tipo_ruolo_id ? [cva_tipo_ruolo_id] : []);
+
+  if (!societa_id || ruoli.length === 0) {
+    return res.status(400).json({ error: "Società e almeno un Ruolo sono obbligatori." });
   }
 
   // Normalizzazione parametri opzionali
@@ -37,9 +39,11 @@ router.post('/anagrafica/gestione-referenti/add', (req, res) => {
         db.run(`INSERT INTO legm_referenti_persone (referente_id, persona_id) VALUES (?, ?)`, [referenteId, pId], (err) => {
           if (err) return handleError("Errore collegamento persona: " + err.message);
 
-          // 3. Collega Ruolo
-          db.run(`INSERT INTO legm_referenti_attributi (referente_id, attributo_id) VALUES (?, ?)`, [referenteId, cva_tipo_ruolo_id], (err) => {
-            if (err) return handleError("Errore collegamento ruolo: " + err.message);
+          // 3. Collega Ruoli
+          const stmt = db.prepare("INSERT INTO legm_referenti_attributi (referente_id, attributo_id) VALUES (?, ?)");
+          ruoli.forEach(rid => stmt.run(referenteId, rid));
+          stmt.finalize((err) => {
+            if (err) return handleError("Errore collegamento ruoli: " + err.message);
 
             // 4. Collega Società
             db.run(`INSERT INTO legm_societa_referenti (societa_id, referente_id) VALUES (?, ?)`, [societa_id, referenteId], (err) => {

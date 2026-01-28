@@ -52,7 +52,7 @@
                         <thead class="bg-base-200 text-base-content uppercase text-xs font-bold">
                             <tr>
                                 <th>Nominativo</th>
-                                <th>Ruolo</th>
+                                <th>Ruoli</th>
                                 <th id="th-societa">Società</th>
                                 <th id="th-sede">Sede</th>
                                 <th id="th-ufficio">Ufficio</th>
@@ -164,10 +164,18 @@
                     }
 
                     data.forEach(r => {
+                        // Deduplica i tag (fix per duplicati generati da join SQL multiple su attributi sede/ufficio)
+                        const tags = (r.ruolo || '').split(',').map(t => t.trim()).filter(t => t);
+                        const uniqueTags = [...new Set(tags)];
+
+                        const ruoliHtml = uniqueTags
+                            .map(tag => `<span class="badge badge-ghost bg-blue-50 text-blue-700 border-blue-200 h-auto py-1 px-2 rounded-lg text-xs">${tag}</span>`)
+                            .join('');
+
                         tbody.innerHTML += `
                             <tr class="hover">
                                 <td class="font-bold">${r.cognome} ${r.nome}</td>
-                                <td><span class="badge badge-info">${r.ruolo || '-'}</span></td>
+                                <td><div class="flex flex-wrap gap-1">${ruoliHtml || '-'}</div></td>
                                 ${(societaId || sedeId || ufficioId) ? '' : `<td>${r.societa_id ? `<a href="/anagrafica/dettaglio-societa/${r.societa_id}" target="_blank" class="link link-hover font-bold">${r.ragione_sociale || '-'}</a>` : (r.ragione_sociale || '-')}</td>`}
                                 ${(sedeId || ufficioId) ? '' : `<td>${r.sede_id ? `<a href="/anagrafica/dettaglio-sede/${r.sede_id}" target="_blank" class="link link-hover font-bold">${formatSede(r)}</a>` : formatSede(r)}</td>`}
                                 ${ufficioId ? '' : `<td>${r.ufficio_id ? `<a href="/anagrafica/ufficio/dettaglio?id=${r.ufficio_id}&societa_id=${r.societa_id}" target="_blank" class="link link-hover font-bold">${formatUfficio(r)}</a>` : formatUfficio(r)}</td>`}

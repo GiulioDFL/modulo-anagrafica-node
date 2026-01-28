@@ -16,11 +16,10 @@ SELECT
     lua.attributo_id as cva_tipo_ufficio_id,
     tu.valore as tipo_ufficio,
     lrp.persona_id,
-    lra.attributo_id as cva_tipo_ruolo_id,
     p.nome,
     p.cognome,
     p.codice_fiscale,
-    cva.valore as ruolo,
+    GROUP_CONCAT(cva.valore, ', ') as ruolo,
     CASE 
         WHEN u.id IS NOT NULL THEN 'Ufficio: ' || COALESCE(u.nome_ufficio, tu.valore)
         WHEN s.id IS NOT NULL THEN 'Sede: ' || COALESCE(i.comune, '') || ' (' || COALESCE(ts.valore, 'Sede') || ')'
@@ -48,4 +47,5 @@ WHERE (:id IS NULL OR r.id = :id)
   AND (:sede_id IS NULL OR lsede.sede_id = :sede_id)
   AND (:ufficio_id IS NULL OR luff.ufficio_id = :ufficio_id)
   AND (p.nome LIKE :search OR p.cognome LIKE :search OR cva.valore LIKE :search)
+GROUP BY r.id
 ORDER BY p.cognome, p.nome;
