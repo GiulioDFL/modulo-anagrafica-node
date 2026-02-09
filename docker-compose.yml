@@ -1,0 +1,14 @@
+services:
+  express-app:
+    build: .
+    container_name: la-mia-app-node
+    # Mappiamo la porta 3000 del container sulla 3000 del tuo Ubuntu
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=development
+    # Il volume serve per vedere le modifiche al codice senza riavviare Docker
+    volumes:
+      - .:/app
+      - /app/node_modules # Evita che il PC sovrascriva i moduli del container
