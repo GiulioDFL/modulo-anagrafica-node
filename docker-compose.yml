@@ -4,7 +4,7 @@ services:
     container_name: modulo-anagrafica-container
     restart: always  # <--- QUESTA è la riga magica per la VPS
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       - PORT=3000
     volumes:
