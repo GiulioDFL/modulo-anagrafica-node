@@ -1,7 +1,7 @@
 services:
   express-app:
     build: .
-    container_name: la-mia-app-node
+    container_name: modulo-anagrafica-container
     restart: always  # <--- QUESTA è la riga magica per la VPS
     ports:
       - "3000:3000"
