@@ -48,6 +48,6 @@ app.use(require('./routes/util/attributes'));
 app.use(require('./routes/settings'));
 
 // Avvio del server
-app.listen(port, '127.0.0.1', () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`Server in ascolto su http://localhost:${port}`);
 });
