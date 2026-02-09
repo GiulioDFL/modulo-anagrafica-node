@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('./database/definition/init');
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3000;
 
 // Imposta EJS come view engine
 app.set('view engine', 'ejs');
@@ -41,6 +41,8 @@ app.use(require('./routes/anagrafica/referenti-add'));
 app.use(require('./routes/anagrafica/referenti-edit'));
 app.use(require('./routes/anagrafica/referenti-delete'));
 app.use(require('./routes/anagrafica/tipi_ruolo'));
+app.use(require('./routes/anagrafica/persone-fisiche-get'));
+app.use(require('./routes/anagrafica/persone-fisiche-edit'));
 app.use(require('./routes/util/gemini'));
 app.use(require('./routes/util/attributes'));
 app.use(require('./routes/settings'));

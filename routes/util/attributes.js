@@ -40,6 +40,10 @@ router.get('/api/attributes/:entity/:id/tags', (req, res) => {
             table = 'legm_referenti_attributi';
             entityCol = 'referente_id';
             break;
+        case 'persone-fisiche':
+            table = 'legm_persone_fisiche_attributi';
+            entityCol = 'persona_id';
+            break;
         default:
             return res.status(400).json({ error: 'Entità non valida' });
     }
