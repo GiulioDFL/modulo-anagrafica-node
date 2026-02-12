@@ -1,9 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../../database/definition/init');
+const PocketBase = require('pocketbase').default || require('pocketbase');
+require('dotenv').config();
+
+// Inizializzazione client PocketBase
+const pb = new PocketBase(process.env.POCKET_BASE_URI);
 
 // POST /anagrafica/gestione-societa/add (Inserimento)
-router.post('/anagrafica/gestione-societa/add', (req, res) => {
+router.post('/anagrafica/gestione-societa/add', async (req, res) => {
   let { ragione_sociale, partita_iva, codice_fiscale, codice_destinatario, cva_settore_id } = req.body;
 
   // 1. Formattazione e Pulizia Dati
@@ -38,44 +42,27 @@ router.post('/anagrafica/gestione-societa/add', (req, res) => {
     return res.status(400).json({ error: errors.join("\n") });
   }
 
-  // Preparazione valori (null se stringa vuota per coerenza DB)
-  const pIva = partita_iva || null;
-  const cFisc = codice_fiscale || null;
-  const cDest = codice_destinatario || null;
+  // Preparazione payload per PocketBase
   const settori = Array.isArray(cva_settore_id) ? cva_settore_id : (cva_settore_id ? [cva_settore_id] : []);
 
-  const sql = `INSERT INTO societa (ragione_sociale, partita_iva, codice_fiscale, codice_destinatario) VALUES (?, ?, ?, ?)`;
-  
-  db.serialize(() => {
-    db.run("BEGIN TRANSACTION");
-    db.run(sql, [ragione_sociale, pIva, cFisc, cDest], function(err) {
-      if (err) {
-        db.run("ROLLBACK");
-        if (err.message.includes('UNIQUE constraint failed')) {
-          return res.status(400).json({ error: "Esiste già una società con questa Partita IVA." });
-        }
-        return res.status(500).json({ error: "Errore inserimento: " + err.message });
-      }
-      
-      const societaId = this.lastID;
+  const data = {
+    ragione_sociale,
+    partita_iva: partita_iva || null,
+    codice_fiscale: codice_fiscale || null,
+    codice_destinatario: codice_destinatario || null,
+    categorie: settori // Mappatura corretta sul campo 'categorie' di PocketBase
+  };
 
-      if (settori.length > 0) {
-        const stmt = db.prepare("INSERT INTO legm_societa_attributi (societa_id, attributo_id) VALUES (?, ?)");
-        settori.forEach(sid => stmt.run(societaId, sid));
-        stmt.finalize(err => {
-          if (err) {
-            db.run("ROLLBACK");
-            return res.status(500).json({ error: "Errore inserimento settori: " + err.message });
-          }
-          db.run("COMMIT");
-          res.json({ success: true, message: "Società inserita con successo", id: societaId });
-        });
-      } else {
-        db.run("COMMIT");
-        res.json({ success: true, message: "Società inserita con successo", id: societaId });
-      }
-    });
-  });
+  try {
+    const record = await pb.collection('societa').create(data);
+    res.json({ success: true, message: "Società inserita con successo", id: record.id });
+  } catch (err) {
+    // Gestione errore duplicati (es. Partita IVA) basata sulla risposta di PocketBase
+    if (err.status === 400 && err.response?.data?.partita_iva) {
+      return res.status(400).json({ error: "Esiste già una società con questa Partita IVA." });
+    }
+    res.status(500).json({ error: "Errore inserimento: " + err.message });
+  }
 });
 
 module.exports = router;

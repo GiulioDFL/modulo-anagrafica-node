@@ -1,8 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../../database/definition/init');
+const PocketBase = require('pocketbase').default || require('pocketbase');
+require('dotenv').config();
 
-router.post('/anagrafica/gestione-sedi/add', (req, res) => {
+// Inizializzazione client PocketBase
+const pb = new PocketBase(process.env.POCKET_BASE_URI);
+
+router.post('/anagrafica/gestione-sedi/add', async (req, res) => {
   let { societa_id, cva_tipo_sede_id, via, numero_civico, cap, comune, provincia, paese } = req.body;
 
   // Validazione base
@@ -18,44 +22,26 @@ router.post('/anagrafica/gestione-sedi/add', (req, res) => {
   provincia = (provincia || '').trim().toUpperCase();
   paese = (paese || '').trim().toUpperCase();
 
-  db.serialize(() => {
-    db.run("BEGIN TRANSACTION");
+  const categorie = Array.isArray(cva_tipo_sede_id) ? cva_tipo_sede_id : (cva_tipo_sede_id ? [cva_tipo_sede_id] : []);
 
-    // 1. Inserimento Indirizzo
-    const sqlIndirizzo = `INSERT INTO indirizzi (via, numero_civico, cap, comune, provincia, paese) VALUES (?, ?, ?, ?, ?, ?)`;
-    db.run(sqlIndirizzo, [via, numero_civico, cap, comune, provincia, paese], function(err) {
-      if (err) { db.run("ROLLBACK"); return res.status(500).json({ error: "Errore indirizzo: " + err.message }); }
-      
-      const indirizzoId = this.lastID;
+  try {
+    // 1. Creazione Indirizzo
+    const indirizzoData = { via, numero_civico, cap, comune, provincia, paese };
+    const indirizzoRecord = await pb.collection('indirizzi').create(indirizzoData);
 
-      // 2. Inserimento Sede (Record principale)
-      db.run(`INSERT INTO sedi DEFAULT VALUES`, function(err) {
-        if (err) { db.run("ROLLBACK"); return res.status(500).json({ error: "Errore creazione sede: " + err.message }); }
-        
-        const sedeId = this.lastID;
+    // 2. Creazione Sede con relazioni
+    const sedeData = {
+      societa: societa_id,
+      indirizzo: indirizzoRecord.id,
+      categorie: categorie // Mappatura su campo 'categorie' (ex cva_tipo_sede_id)
+    };
+    
+    await pb.collection('sedi').create(sedeData);
 
-        // 3. Inserimento Collegamenti (Società, Indirizzo, Tipo Sede)
-        const sqlLinks = `
-          INSERT INTO legm_societa_sedi (societa_id, sede_id) VALUES (?, ?);
-          INSERT INTO legm_sedi_indirizzi (sede_id, indirizzo_id) VALUES (?, ?);
-          INSERT INTO legm_sedi_attributi (sede_id, attributo_id) VALUES (?, ?);
-        `;
-
-        // Eseguiamo i collegamenti in sequenza o tramite exec se supportato, qui usiamo nesting per sicurezza su lastID
-        db.run(`INSERT INTO legm_societa_sedi (societa_id, sede_id) VALUES (?, ?)`, [societa_id, sedeId], (err) => {
-          if (err) { db.run("ROLLBACK"); return res.status(500).json({ error: "Errore link società: " + err.message }); }
-          db.run(`INSERT INTO legm_sedi_indirizzi (sede_id, indirizzo_id) VALUES (?, ?)`, [sedeId, indirizzoId], (err) => {
-            if (err) { db.run("ROLLBACK"); return res.status(500).json({ error: "Errore link indirizzo: " + err.message }); }
-            db.run(`INSERT INTO legm_sedi_attributi (sede_id, attributo_id) VALUES (?, ?)`, [sedeId, cva_tipo_sede_id], (err) => {
-              if (err) { db.run("ROLLBACK"); return res.status(500).json({ error: "Errore link tipo sede: " + err.message }); }
-              db.run("COMMIT");
-              res.json({ success: true, message: "Sede inserita con successo" });
-            });
-          });
-        });
-      });
-    });
-  });
+    res.json({ success: true, message: "Sede inserita con successo" });
+  } catch (err) {
+    res.status(500).json({ error: "Errore inserimento: " + err.message });
+  }
 });
 
 module.exports = router;

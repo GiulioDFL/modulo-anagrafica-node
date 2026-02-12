@@ -1,5 +1,8 @@
 const sqlite3 = require('sqlite3').verbose();
 
+/*
+// SQLite disabilitato per migrazione a PocketBase
+
 // Inizializzazione Database SQLite
 const db = new sqlite3.Database('./database/database.db', (err) => {
   if (err) {
@@ -381,3 +384,5 @@ db.exec(schema, (err) => {
 });
 
 module.exports = db;
+*/
+module.exports = {};

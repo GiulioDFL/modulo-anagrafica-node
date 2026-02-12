@@ -1,9 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../../database/definition/init');
+const PocketBase = require('pocketbase').default || require('pocketbase');
+require('dotenv').config();
+
+// Inizializzazione client PocketBase
+const pb = new PocketBase(process.env.POCKET_BASE_URI);
 
 // POST /anagrafica/gestione-referenti/edit
-router.post('/anagrafica/gestione-referenti/edit', (req, res) => {
+router.post('/anagrafica/gestione-referenti/edit', async (req, res) => {
   let { id, persona_id, cva_tipo_ruolo_id, nome, cognome } = req.body;
 
   const ruoli = Array.isArray(cva_tipo_ruolo_id) ? cva_tipo_ruolo_id : (cva_tipo_ruolo_id ? [cva_tipo_ruolo_id] : []);
@@ -17,32 +21,26 @@ router.post('/anagrafica/gestione-referenti/edit', (req, res) => {
   nome = (nome || '').trim();
   cognome = (cognome || '').trim();
 
-  db.serialize(() => {
-    db.run("BEGIN TRANSACTION");
-
-    const handleError = (errMsg) => {
-      db.run("ROLLBACK");
-      res.status(500).json({ error: errMsg });
+  try {
+    // 1. Aggiorna Dati Persona Fisica
+    const personaData = {
+      nome,
+      cognome
     };
+    await pb.collection('persone_fisiche').update(persona_id, personaData);
 
-    // 1. Aggiorna Dati Persona Fisica (Nome/Cognome)
-    db.run(`UPDATE persone_fisiche SET nome = ?, cognome = ? WHERE id = ?`, [nome, cognome, persona_id], (err) => {
-      if (err) return handleError("Errore aggiornamento anagrafica persona: " + err.message);
+    // 2. Aggiorna Ruoli (Categorie) nel Referente
+    // In PocketBase, aggiornare un campo relazione sovrascrive la lista esistente con quella nuova
+    const referenteData = {
+      categorie: ruoli
+    };
+    await pb.collection('referenti').update(id, referenteData);
 
-      // 2. Aggiorna Ruoli (Delete + Insert)
-      db.run(`DELETE FROM legm_referenti_attributi WHERE referente_id = ?`, [id], (err) => {
-        if (err) return handleError("Errore pulizia ruoli: " + err.message);
+    res.json({ success: true, message: "Referente aggiornato con successo" });
 
-        const stmt = db.prepare("INSERT INTO legm_referenti_attributi (referente_id, attributo_id) VALUES (?, ?)");
-        ruoli.forEach(rid => stmt.run(id, rid));
-        stmt.finalize((err) => {
-          if (err) return handleError("Errore aggiornamento ruoli: " + err.message);
-          db.run("COMMIT");
-          res.json({ success: true, message: "Referente aggiornato con successo" });
-        });
-      });
-    });
-  });
+  } catch (err) {
+    res.status(500).json({ error: "Errore aggiornamento: " + err.message });
+  }
 });
 
 module.exports = router;

@@ -1,71 +1,63 @@
-// routes/api/attributes.js
 const express = require('express');
 const router = express.Router();
-const db = require('../../database/definition/init');
+const PocketBase = require('pocketbase').default || require('pocketbase');
+require('dotenv').config();
+
+// Inizializzazione client PocketBase
+const pb = new PocketBase(process.env.POCKET_BASE_URI);
 
 // GET /api/attributes/:group
-// Restituisce le opzioni disponibili per un determinato gruppo (es. TIPI_UFFICIO, SETTORI)
-router.get('/api/attributes/:group', (req, res) => {
+// Restituisce tutte le categorie per un determinato gruppo (es. TIPO_UFFICIO, SETTORE)
+router.get('/api/attributes/:group', async (req, res) => {
     const { group } = req.params;
-    const sql = "SELECT id, valore FROM chiave_valore_attributo WHERE gruppo = ? ORDER BY valore";
-    db.all(sql, [group], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
+    try {
+        const records = await pb.collection('categorie').getFullList({
+            filter: `gruppo = "${group}"`,
+            sort: 'valore',
+        });
+        res.json(records);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // GET /api/attributes/:entity/:id/tags
-// Restituisce i tag assegnati a una specifica entità
-router.get('/api/attributes/:entity/:id/tags', (req, res) => {
+// Restituisce le categorie (tag) assegnate a una specifica entità (record)
+router.get('/api/attributes/:entity/:id/tags', async (req, res) => {
     const { entity, id } = req.params;
     const { group } = req.query;
 
-    let table = '';
-    let entityCol = '';
+    // Whitelist delle entità valide e mappatura al nome della collection
+    const entityMap = {
+        'societa': 'societa',
+        'sedi': 'sedi',
+        'uffici': 'uffici',
+        'referenti': 'referenti',
+        'persone-fisiche': 'persone_fisiche'
+    };
 
-    switch (entity) {
-        case 'societa':
-            table = 'legm_societa_attributi';
-            entityCol = 'societa_id';
-            break;
-        case 'sedi':
-            table = 'legm_sedi_attributi';
-            entityCol = 'sede_id';
-            break;
-        case 'uffici':
-            table = 'legm_uffici_attributi';
-            entityCol = 'ufficio_id';
-            break;
-        case 'referenti':
-            table = 'legm_referenti_attributi';
-            entityCol = 'referente_id';
-            break;
-        case 'persone-fisiche':
-            table = 'legm_persone_fisiche_attributi';
-            entityCol = 'persona_id';
-            break;
-        default:
-            return res.status(400).json({ error: 'Entità non valida' });
+    const collectionName = entityMap[entity];
+    if (!collectionName) {
+        return res.status(400).json({ error: 'Entità non valida' });
     }
 
-    let sql = `
-        SELECT cva.id, cva.valore 
-        FROM ${table} legm
-        JOIN chiave_valore_attributo cva ON legm.attributo_id = cva.id
-        WHERE legm.${entityCol} = ?
-    `;
+    try {
+        const record = await pb.collection(collectionName).getOne(id, {
+            expand: 'categorie'
+        });
 
-    const params = [id];
+        let categories = record.expand?.categorie || [];
 
-    if (group) {
-        sql += " AND cva.gruppo = ?";
-        params.push(group);
+        // Se è specificato un gruppo, filtra le categorie restituite
+        if (group && Array.isArray(categories)) {
+            categories = categories.filter(cat => cat.gruppo === group);
+        }
+
+        res.json(categories);
+    } catch (error) {
+        if (error.status === 404) return res.status(404).json({ error: 'Record non trovato' });
+        res.status(500).json({ error: error.message });
     }
-
-    db.all(sql, params, (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
 });
 
 module.exports = router;

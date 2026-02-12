@@ -1,37 +1,79 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../../database/definition/init');
-const fs = require('fs');
-const path = require('path');
+const PocketBase = require('pocketbase').default || require('pocketbase');
+require('dotenv').config();
+
+// Inizializzazione client PocketBase
+const pb = new PocketBase(process.env.POCKET_BASE_URI);
 
 // GET /api/anagrafica/sedi
-router.get('/api/anagrafica/sedi', (req, res) => {
+router.get('/api/anagrafica/sedi', async (req, res) => {
   try {
-    const sqlPath = path.join(__dirname, '../../database/query/get_sedi.sql');
-    if (!fs.existsSync(sqlPath)) return res.status(500).json({ error: "File SQL non trovato" });
-    
-    const sql = fs.readFileSync(sqlPath, 'utf8');
-    
-    // Preparazione del termine di ricerca con wildcards per LIKE
-    const searchTerm = '%' + (req.query.search || '').trim().toLowerCase() + '%';
+    const { id, societa_id, search } = req.query;
 
-    // Se non viene richiesto un ID specifico (dettaglio), societa_id è obbligatorio per la lista
-    if (!req.query.id && !req.query.societa_id) {
-      return res.status(400).json({ error: "Parametro societa_id mancante." });
+    // Helper per escape caratteri nelle stringhe di filtro
+    const escape = (str) => (str || '').replace(/"/g, '\\"');
+
+    let filterString = '';
+
+    if (id) {
+      filterString = `id = "${escape(id)}"`;
+    } else {
+      // Se non viene richiesto un ID specifico (dettaglio), societa_id è obbligatorio per la lista
+      if (!societa_id) {
+        return res.status(400).json({ error: "Parametro societa_id mancante." });
+      }
+
+      const filters = [`societa = "${escape(societa_id)}"`];
+
+      if (search) {
+        // Logica di ricerca "DataTable.js style" su campi indirizzo
+        const searchableFields = [
+          'indirizzo.via',
+          'indirizzo.numero_civico',
+          'indirizzo.comune',
+          'indirizzo.cap',
+          'indirizzo.provincia',
+          'indirizzo.paese',
+          'categorie.valore',
+          'contatti.valore'
+        ];
+
+        const terms = search.trim().split(/\s+/).filter(Boolean);
+        const searchFilters = [];
+
+        terms.forEach(term => {
+          const isNegative = term.startsWith('!');
+          const word = isNegative ? term.substring(1) : term;
+          if (!word) return;
+          const escapedWord = escape(word);
+
+          if (isNegative) {
+            const negativeConditions = searchableFields.map(f => `${f} !~ "${escapedWord}"`);
+            searchFilters.push(`(${negativeConditions.join(' && ')})`);
+          } else {
+            const positiveConditions = searchableFields.map(f => `${f} ~ "${escapedWord}"`);
+            searchFilters.push(`(${positiveConditions.join(' || ')})`);
+          }
+        });
+
+        if (searchFilters.length > 0) {
+          filters.push(`(${searchFilters.join(' && ')})`);
+        }
+      }
+      
+      filterString = filters.join(' && ');
     }
 
-    const params = {
-      ':id': req.query.id || null,
-      ':societa_id': req.query.societa_id || null,
-      ':search': searchTerm
-    };
-
-    db.all(sql, params, (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(rows);
+    const records = await pb.collection('sedi').getFullList({
+      filter: filterString,
+      sort: '-created',
+      expand: 'indirizzo,categorie,contatti',
     });
+
+    res.json(records);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Errore interno del server: " + error.message });
   }
 });
 

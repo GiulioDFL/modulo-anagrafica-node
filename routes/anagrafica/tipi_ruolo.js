@@ -1,14 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../../database/definition/init');
+const PocketBase = require('pocketbase').default || require('pocketbase');
+require('dotenv').config();
+
+// Inizializzazione client PocketBase
+const pb = new PocketBase(process.env.POCKET_BASE_URI);
 
 // GET /api/tipi-ruolo
-router.get('/api/tipi-ruolo', (req, res) => {
-  const sql = "SELECT id, valore FROM chiave_valore_attributo WHERE gruppo = 'TIPI_RUOLO' ORDER BY valore ASC";
-  db.all(sql, [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+router.get('/api/tipi-ruolo', async (req, res) => {
+  try {
+    const records = await pb.collection('categorie').getFullList({
+      filter: 'gruppo = "RUOLO"',
+      sort: 'valore',
+    });
+    res.json(records);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 module.exports = router;

@@ -1,9 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../../database/definition/init');
+const PocketBase = require('pocketbase').default || require('pocketbase');
+require('dotenv').config();
+
+// Inizializzazione client PocketBase
+const pb = new PocketBase(process.env.POCKET_BASE_URI);
 
 // POST /anagrafica/gestione-societa/edit (Modifica)
-router.post('/anagrafica/gestione-societa/edit', (req, res) => {
+router.post('/anagrafica/gestione-societa/edit', async (req, res) => {
   let { id, ragione_sociale, partita_iva, codice_fiscale, codice_destinatario, cva_settore_id } = req.body;
 
   if (!id) {
@@ -39,48 +43,26 @@ router.post('/anagrafica/gestione-societa/edit', (req, res) => {
     return res.status(400).json({ error: errors.join("\n") });
   }
 
-  const pIva = partita_iva || null;
-  const cFisc = codice_fiscale || null;
-  const cDest = codice_destinatario || null;
+  // Preparazione payload per PocketBase
   const settori = Array.isArray(cva_settore_id) ? cva_settore_id : (cva_settore_id ? [cva_settore_id] : []);
 
-  const sql = `UPDATE societa SET ragione_sociale = ?, partita_iva = ?, codice_fiscale = ?, codice_destinatario = ? WHERE id = ?`;
-  
-  db.serialize(() => {
-    db.run("BEGIN TRANSACTION");
-    db.run(sql, [ragione_sociale, pIva, cFisc, cDest, id], function(err) {
-      if (err) {
-        db.run("ROLLBACK");
-        if (err.message.includes('UNIQUE constraint failed')) {
-          return res.status(400).json({ error: "Esiste già una società con questa Partita IVA." });
-        }
-        return res.status(500).json({ error: "Errore aggiornamento: " + err.message });
-      }
+  const data = {
+    ragione_sociale,
+    partita_iva: partita_iva || null,
+    codice_fiscale: codice_fiscale || null,
+    codice_destinatario: codice_destinatario || null,
+    categorie: settori // Mappatura corretta sul campo 'categorie' di PocketBase
+  };
 
-      // Cancella i settori esistenti per questa società
-      const deleteSql = `DELETE FROM legm_societa_attributi WHERE societa_id = ? AND attributo_id IN (SELECT id FROM chiave_valore_attributo WHERE gruppo = 'TIPI_SETTORE')`;
-      
-      db.run(deleteSql, [id], function(errDel) {
-        if (errDel) {
-          db.run("ROLLBACK");
-          return res.status(500).json({ error: "Errore aggiornamento settori (delete): " + errDel.message });
-        }
-
-        if (settori.length > 0) {
-          const stmt = db.prepare("INSERT INTO legm_societa_attributi (societa_id, attributo_id) VALUES (?, ?)");
-          settori.forEach(sid => stmt.run(id, sid));
-          stmt.finalize(errIns => {
-             if (errIns) { db.run("ROLLBACK"); return res.status(500).json({ error: "Errore inserimento settori" }); }
-             db.run("COMMIT");
-             res.json({ success: true, message: "Società aggiornata con successo" });
-          });
-        } else {
-          db.run("COMMIT");
-          res.json({ success: true, message: "Società aggiornata con successo" });
-        }
-      });
-    });
-  });
+  try {
+    await pb.collection('societa').update(id, data);
+    res.json({ success: true, message: "Società aggiornata con successo" });
+  } catch (err) {
+    if (err.status === 400 && err.response?.data?.partita_iva) {
+      return res.status(400).json({ error: "Esiste già una società con questa Partita IVA." });
+    }
+    return res.status(500).json({ error: "Errore aggiornamento: " + err.message });
+  }
 });
 
 module.exports = router;

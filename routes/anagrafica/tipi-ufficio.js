@@ -1,12 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../../database/definition/init');
+const PocketBase = require('pocketbase').default || require('pocketbase');
+require('dotenv').config();
 
-router.get('/api/tipi-ufficio', (req, res) => {
-    db.all("SELECT * FROM chiave_valore_attributo WHERE gruppo = 'TIPI_UFFICIO'", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
+// Inizializzazione client PocketBase
+const pb = new PocketBase(process.env.POCKET_BASE_URI);
+
+router.get('/api/tipi-ufficio', async (req, res) => {
+  try {
+    const records = await pb.collection('categorie').getFullList({
+      filter: 'gruppo = "UFFICIO"',
+      sort: 'valore',
     });
+    res.json(records);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 module.exports = router;

@@ -1,14 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../../database/definition/init');
+const PocketBase = require('pocketbase').default || require('pocketbase');
+require('dotenv').config();
+
+// Inizializzazione client PocketBase
+const pb = new PocketBase(process.env.POCKET_BASE_URI);
 
 // GET /api/anagrafica/settori
-router.get('/api/anagrafica/settori', (req, res) => {
-  const sql = "SELECT id, valore FROM chiave_valore_attributo WHERE gruppo = 'SETTORI' ORDER BY valore ASC";
-  db.all(sql, [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+router.get('/api/anagrafica/settori', async (req, res) => {
+  try {
+    const records = await pb.collection('categorie').getFullList({
+      filter: 'gruppo = "SETTORE"',
+      sort: 'valore',
+    });
+    res.json(records);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 module.exports = router;

@@ -1,19 +1,23 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../../database/definition/init');
+const PocketBase = require('pocketbase').default || require('pocketbase');
+require('dotenv').config();
+
+// Inizializzazione client PocketBase
+const pb = new PocketBase(process.env.POCKET_BASE_URI);
 
 // POST /anagrafica/gestione-referenti/delete
-router.post('/anagrafica/gestione-referenti/delete', (req, res) => {
+router.post('/anagrafica/gestione-referenti/delete', async (req, res) => {
   const { id } = req.body;
 
   if (!id) return res.status(400).json({ error: "ID referente mancante." });
 
-  const sql = `DELETE FROM referenti WHERE id = ?`;
-  
-  db.run(sql, [id], function(err) {
-    if (err) return res.status(500).json({ error: "Errore eliminazione referente: " + err.message });
+  try {
+    await pb.collection('referenti').delete(id);
     res.json({ success: true, message: "Referente eliminato con successo" });
-  });
+  } catch (err) {
+    res.status(500).json({ error: "Errore eliminazione referente: " + err.message });
+  }
 });
 
 module.exports = router;

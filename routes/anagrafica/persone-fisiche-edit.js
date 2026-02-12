@@ -1,9 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../../database/definition/init');
+const PocketBase = require('pocketbase').default || require('pocketbase');
+require('dotenv').config();
+
+// Inizializzazione client PocketBase
+const pb = new PocketBase(process.env.POCKET_BASE_URI);
 
 // POST /anagrafica/gestione-persone-fisiche/edit
-router.post('/anagrafica/gestione-persone-fisiche/edit', (req, res) => {
+router.post('/anagrafica/gestione-persone-fisiche/edit', async (req, res) => {
   let { id, nome, cognome, data_nascita, codice_fiscale, cva_tipo_competenza_id } = req.body;
 
   if (!id) return res.status(400).json({ error: "ID persona mancante." });
@@ -25,51 +29,23 @@ router.post('/anagrafica/gestione-persone-fisiche/edit', (req, res) => {
     return res.status(400).json({ error: "Il Codice Fiscale deve essere di 16 caratteri alfanumerici." });
   }
 
-  const cf = codice_fiscale || null;
-  const dn = data_nascita || null;
+  const data = {
+    nome,
+    cognome,
+    data_nascita: data_nascita || null,
+    codice_fiscale: codice_fiscale || null,
+    categorie: competenze // Mappatura sul campo 'categorie' della collection persone_fisiche
+  };
 
-  db.serialize(() => {
-    db.run("BEGIN TRANSACTION");
-
-    const handleError = (errMsg) => {
-      db.run("ROLLBACK");
-      res.status(500).json({ error: errMsg });
-    };
-
-    // 1. Aggiorna Dati Persona
-    const sqlUpdate = `UPDATE persone_fisiche SET nome = ?, cognome = ?, data_nascita = ?, codice_fiscale = ? WHERE id = ?`;
-    
-    db.run(sqlUpdate, [nome, cognome, dn, cf, id], function(err) {
-      if (err) {
-        if (err.message.includes('UNIQUE constraint failed')) {
-          db.run("ROLLBACK");
-          return res.status(400).json({ error: "Esiste già una persona con questo Codice Fiscale." });
-        }
-        return handleError("Errore aggiornamento anagrafica persona: " + err.message);
-      }
-
-      // 2. Aggiorna Competenze (Delete + Insert)
-      // Filtriamo per gruppo TIPI_COMPETENZA per evitare di cancellare altri attributi futuri
-      const sqlDelete = `DELETE FROM legm_persone_fisiche_attributi WHERE persona_id = ? AND attributo_id IN (SELECT id FROM chiave_valore_attributo WHERE gruppo = 'TIPI_COMPETENZA')`;
-
-      db.run(sqlDelete, [id], (err) => {
-        if (err) return handleError("Errore pulizia competenze: " + err.message);
-
-        if (competenze.length > 0) {
-          const stmt = db.prepare("INSERT INTO legm_persone_fisiche_attributi (persona_id, attributo_id) VALUES (?, ?)");
-          competenze.forEach(cid => stmt.run(id, cid));
-          stmt.finalize((err) => {
-            if (err) return handleError("Errore aggiornamento competenze: " + err.message);
-            db.run("COMMIT");
-            res.json({ success: true, message: "Persona fisica aggiornata con successo" });
-          });
-        } else {
-          db.run("COMMIT");
-          res.json({ success: true, message: "Persona fisica aggiornata con successo" });
-        }
-      });
-    });
-  });
+  try {
+    await pb.collection('persone_fisiche').update(id, data);
+    res.json({ success: true, message: "Persona fisica aggiornata con successo" });
+  } catch (err) {
+    if (err.status === 400 && err.response?.data?.codice_fiscale) {
+      return res.status(400).json({ error: "Esiste già una persona con questo Codice Fiscale." });
+    }
+    res.status(500).json({ error: "Errore aggiornamento: " + err.message });
+  }
 });
 
 module.exports = router;
