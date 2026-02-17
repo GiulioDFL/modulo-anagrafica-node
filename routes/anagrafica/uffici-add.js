@@ -1,10 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const PocketBase = require('pocketbase').default || require('pocketbase');
-require('dotenv').config();
-
-// Inizializzazione client PocketBase
-const pb = new PocketBase(process.env.POCKET_BASE_URI);
+const getPb = require('../../pocketbase-client');
 
 // POST /anagrafica/gestione-uffici/add
 router.post('/anagrafica/gestione-uffici/add', async (req, res) => {
@@ -19,6 +15,7 @@ router.post('/anagrafica/gestione-uffici/add', async (req, res) => {
   const categorie = Array.isArray(cva_tipo_ufficio_id) ? cva_tipo_ufficio_id : (cva_tipo_ufficio_id ? [cva_tipo_ufficio_id] : []);
 
   try {
+    const pb = await getPb();
     const data = {
       societa: societa_id,
       sede: sede_id || null,

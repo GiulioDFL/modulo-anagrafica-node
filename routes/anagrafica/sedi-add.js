@@ -1,10 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const PocketBase = require('pocketbase').default || require('pocketbase');
-require('dotenv').config();
-
-// Inizializzazione client PocketBase
-const pb = new PocketBase(process.env.POCKET_BASE_URI);
+const getPb = require('../../pocketbase-client');
 
 router.post('/anagrafica/gestione-sedi/add', async (req, res) => {
   let { societa_id, cva_tipo_sede_id, via, numero_civico, cap, comune, provincia, paese } = req.body;
@@ -25,6 +21,7 @@ router.post('/anagrafica/gestione-sedi/add', async (req, res) => {
   const categorie = Array.isArray(cva_tipo_sede_id) ? cva_tipo_sede_id : (cva_tipo_sede_id ? [cva_tipo_sede_id] : []);
 
   try {
+    const pb = await getPb();
     // 1. Creazione Indirizzo
     const indirizzoData = { via, numero_civico, cap, comune, provincia, paese };
     const indirizzoRecord = await pb.collection('indirizzi').create(indirizzoData);

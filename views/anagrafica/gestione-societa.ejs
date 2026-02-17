@@ -34,24 +34,33 @@
         <!-- Sezione Filtri -->
         <div class="card bg-base-100 shadow-xl mb-6">
             <div class="card-body p-6">
-                <form id="filterForm" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end" autocomplete="off">
-                    <div class="md:col-span-3">
-                        <label for="filter_ragione_sociale" class="label py-0 pb-1"><span class="label-text">Ragione Sociale</span></label>
-                        <input type="text" class="input input-bordered input-sm w-full" id="filter_ragione_sociale" name="ragione_sociale">
+                <form id="filterForm" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end" autocomplete="off">
+                    <div class="form-control">
+                        <label class="label py-0 pb-1"><span class="label-text">Ragione Sociale</span></label>
+                        <input type="text" class="input input-bordered input-sm w-full" name="ragione_sociale" placeholder="Es. Acme Inc.">
                     </div>
-                    <div class="md:col-span-3">
-                        <label for="filter_partita_iva" class="label py-0 pb-1"><span class="label-text">Partita IVA</span></label>
-                        <input type="text" class="input input-bordered input-sm w-full" id="filter_partita_iva" name="partita_iva">
+                    <div class="form-control">
+                        <label class="label py-0 pb-1"><span class="label-text">Partita IVA</span></label>
+                        <input type="text" class="input input-bordered input-sm w-full" name="partita_iva" placeholder="Numerico">
                     </div>
-                    <div class="md:col-span-3">
-                        <label for="filter_codice_fiscale" class="label py-0 pb-1"><span class="label-text">Codice Fiscale</span></label>
-                        <input type="text" class="input input-bordered input-sm w-full" id="filter_codice_fiscale" name="codice_fiscale">
+                    <div class="form-control">
+                        <label class="label py-0 pb-1"><span class="label-text">Codice Fiscale</span></label>
+                        <input type="text" class="input input-bordered input-sm w-full" name="codice_fiscale" placeholder="Alfanumerico">
                     </div>
-                    <div class="md:col-span-3">
-                        <label for="filter_codice_destinatario" class="label py-0 pb-1"><span class="label-text">Codice Destinatario</span></label>
-                        <input type="text" class="input input-bordered input-sm w-full" id="filter_codice_destinatario" name="codice_destinatario">
+                    <div class="form-control">
+                        <label class="label py-0 pb-1"><span class="label-text">Codice Destinatario</span></label>
+                        <input type="text" class="input input-bordered input-sm w-full" name="codice_destinatario" placeholder="Es. 0000000">
                     </div>
-                    <div class="md:col-span-12 flex justify-end gap-2 mt-2">
+                    <div class="form-control">
+                        <label class="label py-0 pb-1"><span class="label-text">Settore / Categoria</span></label>
+                        <input type="text" class="input input-bordered input-sm w-full" name="categoria" placeholder="Es. Informatica">
+                    </div>
+                    <div class="form-control">
+                        <label class="label py-0 pb-1"><span class="label-text">Contatto</span></label>
+                        <input type="text" class="input input-bordered input-sm w-full" name="contatto" placeholder="Es. email o telefono">
+                    </div>
+
+                    <div class="md:col-span-3 flex justify-end gap-2 mt-4 border-t pt-4">
                         <button type="button" class="btn btn-sm btn-ghost" onclick="resetFilters()">Reset</button>
                         <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-search"></i> Cerca</button>
                     </div>
@@ -59,27 +68,14 @@
             </div>
         </div>
 
-        <!-- Tabella Risultati -->
-        <div class="card bg-base-100 shadow-xl">
-            <div class="card-body p-0">
-                <div class="overflow-x-auto rounded-box">
-                    <table class="table table-zebra w-full">
-                        <thead class="bg-base-200 text-base-content uppercase text-xs font-bold">
-                            <tr>
-                                <th>Ragione Sociale</th>
-                                <th>Partita IVA</th>
-                                <th>Codice Fiscale</th>
-                                <th>Cod. Dest.</th>
-                                <th>Settori</th>
-                                <th class="actions-col text-right pr-4">Azioni</th>
-                            </tr>
-                        </thead>
-                        <tbody id="societaTableBody">
-                            <!-- Contenuto caricato via AJAX -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <!-- Header Risultati -->
+        <div class="flex justify-between items-center mb-4 px-1">
+            <div id="resultsCount" class="text-sm font-semibold opacity-70">In attesa di ricerca...</div>
+        </div>
+
+        <!-- Grid Risultati (Card) -->
+        <div id="societaContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <!-- Contenuto caricato via AJAX -->
         </div>
     </div>
 
@@ -104,57 +100,85 @@
             fetch(`/api/anagrafica/societa?${params}`)
                 .then(response => response.json())
                 .then(data => {
-                    const tbody = document.getElementById('societaTableBody');
-                    tbody.innerHTML = '';
+                    const container = document.getElementById('societaContainer');
+                    const countLabel = document.getElementById('resultsCount');
+                    container.innerHTML = '';
                     
                     if (data.error) {
-                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-error">Errore: ${data.error}</td></tr>`;
+                        container.innerHTML = `<div class="col-span-full text-center py-10 text-error bg-base-100 rounded-box shadow">Errore: ${data.error}</div>`;
+                        countLabel.innerText = 'Errore';
                         return;
                     }
 
                     if (data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 opacity-60">Nessuna società trovata con i filtri selezionati.</td></tr>';
+                        container.innerHTML = '<div class="col-span-full text-center py-10 opacity-60 bg-base-100 rounded-box shadow">Nessuna società trovata con i filtri selezionati.</div>';
+                        countLabel.innerText = '0 risultati trovati';
                         return;
                     }
 
+                    countLabel.innerText = `${data.length} risultati trovati`;
+
                     data.forEach(item => {
-                        const row = `
-                            <tr class="hover">
-                                <td class="font-bold">${item.ragione_sociale}</td>
-                                <td>${item.partita_iva || ''}</td>
-                                <td>${item.codice_fiscale || ''}</td>
-                                <td>${item.codice_destinatario || ''}</td>
-                                <td>
-                                    <div class="flex flex-wrap gap-1">
-                                        ${item.settori ? item.settori.split(', ').map(tag => `<span class="badge badge-ghost bg-blue-50 text-blue-700 border-blue-200 h-auto py-1 px-2 rounded-lg text-xs">${tag}</span>`).join('') : ''}
+                        // Gestione categorie/settori da expand di PocketBase
+                        const categorie = item.expand && item.expand.categorie ? (Array.isArray(item.expand.categorie) ? item.expand.categorie : [item.expand.categorie]) : [];
+                        const contatti = item.expand && item.expand.contatti ? (Array.isArray(item.expand.contatti) ? item.expand.contatti : [item.expand.contatti]) : [];
+
+                        // Costruzione HTML Card
+                        const card = `
+                            <div class="card bg-base-100 shadow-md border border-base-200 hover:shadow-lg transition-shadow duration-200">
+                                <div class="card-body p-5">
+                                    <!-- Intestazione Card -->
+                                    <div class="flex justify-between items-start gap-2">
+                                        <h2 class="card-title text-lg font-bold text-primary break-words w-full">${item.ragione_sociale}</h2>
+                                        ${item.codice_destinatario ? `<div class="badge badge-neutral badge-sm whitespace-nowrap" title="Codice Destinatario">${item.codice_destinatario}</div>` : ''}
                                     </div>
-                                </td>
-                                <td class="actions-col text-right">
-                                    <div class="flex justify-end gap-1">
-                                        <a href="/anagrafica/dettaglio-societa/${item.id}" target="_blank" class="btn btn-sm btn-square btn-primary" title="Dettaglio/Modifica">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </a>
-                                        <a href="/anagrafica/gestione-sedi?societa_id=${item.id}" target="_blank" class="btn btn-sm btn-square btn-info text-white" title="Gestione Sedi">
-                                            <i class="bi bi-geo-alt"></i>
-                                        </a>
-                                        <a href="/anagrafica/gestione-uffici?societa_id=${item.id}" target="_blank" class="btn btn-sm btn-square btn-neutral" title="Gestione Uffici">
-                                            <i class="bi bi-building"></i>
-                                        </a>
-                                        <a href="/anagrafica/gestione-referenti?societa_id=${item.id}" target="_blank" class="btn btn-sm btn-square btn-warning text-white" title="Gestione Referenti">
-                                            <i class="bi bi-people"></i>
-                                        </a>
-                                        <form action="/anagrafica/gestione-societa/delete" method="POST" class="inline-block" onsubmit="return confirmDelete(this);">
+
+                                    <!-- Dati Fiscali -->
+                                    <div class="text-xs text-base-content/70 mt-1 space-y-1">
+                                        ${item.partita_iva ? `<div><span class="font-semibold">P.IVA:</span> ${item.partita_iva}</div>` : ''}
+                                        ${item.codice_fiscale ? `<div><span class="font-semibold">CF:</span> ${item.codice_fiscale}</div>` : ''}
+                                    </div>
+
+                                    <!-- Settori -->
+                                    <div class="flex flex-wrap gap-1 mt-3">
+                                        ${categorie.length > 0 ? categorie.map(cat => `<span class="badge badge-ghost bg-blue-50 text-blue-700 border-blue-100 text-xs">${cat.valore}</span>`).join('') : '<span class="text-xs italic opacity-50">Nessun settore</span>'}
+                                    </div>
+
+                                    <!-- Contatti (Limitati a 2 righe visive o scroll se troppi, qui semplici) -->
+                                    <div class="mt-3 space-y-1">
+                                        ${contatti.length > 0 ? contatti.map(c => {
+                                            let icon = 'bi-chat-text';
+                                            if(c.tipo === 'email') icon = 'bi-envelope';
+                                            if(c.tipo === 'pec') icon = 'bi-envelope-check';
+                                            if(c.tipo === 'mobile') icon = 'bi-phone';
+                                            if(c.tipo === 'phone') icon = 'bi-telephone';
+                                            return `<div class="flex items-center gap-2 text-xs truncate" title="${c.tipo}: ${c.valore}">
+                                                <i class="bi ${icon} opacity-70"></i> <span class="opacity-90">${c.valore}</span>
+                                            </div>`;
+                                        }).join('') : '<div class="text-xs italic opacity-50">Nessun contatto</div>'}
+                                    </div>
+
+                                    <!-- Azioni -->
+                                    <div class="card-actions justify-end mt-4 pt-4 border-t border-base-200">
+                                        <div class="join">
+                                            <a href="/anagrafica/dettaglio-societa/${item.id}" target="_blank" class="btn btn-sm btn-primary join-item" title="Modifica"><i class="bi bi-pencil-square"></i></a>
+                                            <a href="/anagrafica/gestione-sedi?societa_id=${item.id}" target="_blank" class="btn btn-sm btn-info text-white join-item" title="Sedi"><i class="bi bi-geo-alt"></i></a>
+                                            <a href="/anagrafica/gestione-uffici?societa_id=${item.id}" target="_blank" class="btn btn-sm btn-neutral join-item" title="Uffici"><i class="bi bi-building"></i></a>
+                                            <a href="/anagrafica/gestione-referenti?societa_id=${item.id}" target="_blank" class="btn btn-sm btn-warning text-white join-item" title="Referenti"><i class="bi bi-people"></i></a>
+                                        </div>
+                                        
+                                        <form action="/anagrafica/gestione-societa/delete" method="POST" class="inline-block ml-2" onsubmit="return confirmDelete(this);">
                                             <input type="hidden" name="id" value="${item.id}">
                                             <input type="hidden" name="confirm_prompt">
-                                            <button type="submit" class="btn btn-sm btn-square btn-error text-white" title="Elimina">
+                                            <button type="submit" class="btn btn-sm btn-error text-white" title="Elimina">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </form>
                                     </div>
-                                </td>
-                            </tr>
+                                </div>
+                            </div>
                         `;
-                        tbody.innerHTML += row;
+                        container.innerHTML += card;
                     });
                 })
                 .catch(err => console.error('Errore caricamento dati:', err));

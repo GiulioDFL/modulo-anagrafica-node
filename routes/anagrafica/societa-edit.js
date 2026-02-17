@@ -1,14 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const PocketBase = require('pocketbase').default || require('pocketbase');
-require('dotenv').config();
-
-// Inizializzazione client PocketBase
-const pb = new PocketBase(process.env.POCKET_BASE_URI);
+const getPb = require('../../pocketbase-client');
 
 // POST /anagrafica/gestione-societa/edit (Modifica)
 router.post('/anagrafica/gestione-societa/edit', async (req, res) => {
-  let { id, ragione_sociale, partita_iva, codice_fiscale, codice_destinatario, cva_settore_id } = req.body;
+  let { id, ragione_sociale, partita_iva, codice_fiscale, codice_destinatario, cva_settore_id, contatti, contatti_json } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: "ID società mancante." });
@@ -51,17 +47,59 @@ router.post('/anagrafica/gestione-societa/edit', async (req, res) => {
     partita_iva: partita_iva || null,
     codice_fiscale: codice_fiscale || null,
     codice_destinatario: codice_destinatario || null,
-    categorie: settori // Mappatura corretta sul campo 'categorie' di PocketBase
+    categorie: settori, // Mappatura corretta sul campo 'categorie' di PocketBase
   };
 
   try {
+    const pb = await getPb();
+
+    // Gestione Contatti: Processa il JSON ricevuto dal frontend
+    let listaContatti = [];
+    if (contatti_json) {
+        try {
+            const contactsInput = JSON.parse(contatti_json);
+            for (const c of contactsInput) {
+                let contactId = c.id;
+                const contactData = { tipo: c.tipo, valore: c.valore };
+                
+                if (contactId) {
+                    // Contatto esistente: prova aggiornamento
+                    try { await pb.collection('contatti').update(contactId, contactData); } 
+                    catch (e) { 
+                        // Se fallisce (es. valore duplicato), cerca se esiste già quel valore
+                        try { const ex = await pb.collection('contatti').getFirstListItem(`valore="${c.valore}"`); contactId = ex.id; } catch (ex) {}
+                    }
+                } else {
+                    // Nuovo contatto: crea
+                    try { 
+                        const newC = await pb.collection('contatti').create(contactData); 
+                        contactId = newC.id; 
+                    } catch (e) {
+                        // Se fallisce creazione (es. esiste già), usa esistente
+                        try { const ex = await pb.collection('contatti').getFirstListItem(`valore="${c.valore}"`); contactId = ex.id; } catch (ex) {}
+                    }
+                }
+                if (contactId) listaContatti.push(contactId);
+            }
+        } catch (e) {
+            console.error("Errore processamento contatti:", e);
+        }
+    } else {
+        listaContatti = Array.isArray(contatti) ? contatti : (contatti ? [contatti] : []);
+    }
+    data.contatti = [...new Set(listaContatti)]; // Rimuove duplicati
+
     await pb.collection('societa').update(id, data);
     res.json({ success: true, message: "Società aggiornata con successo" });
   } catch (err) {
-    if (err.status === 400 && err.response?.data?.partita_iva) {
-      return res.status(400).json({ error: "Esiste già una società con questa Partita IVA." });
+    // Gestione errori dettagliata da PocketBase (es. validazione campi)
+    if (err.response && err.response.data) {
+        const details = Object.entries(err.response.data)
+            .map(([key, val]) => `${key}: ${val.message}`)
+            .join(', ');
+        return res.status(400).json({ error: `Errore validazione: ${details}` });
     }
-    return res.status(500).json({ error: "Errore aggiornamento: " + err.message });
+    return res.status(500).json({ error: "Errore aggiornamento: " + (err.message || err) });
   }
 });
 

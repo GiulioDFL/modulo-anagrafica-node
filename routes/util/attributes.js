@@ -1,16 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const PocketBase = require('pocketbase').default || require('pocketbase');
-require('dotenv').config();
-
-// Inizializzazione client PocketBase
-const pb = new PocketBase(process.env.POCKET_BASE_URI);
+const getPb = require('../../pocketbase-client');
 
 // GET /api/attributes/:group
 // Restituisce tutte le categorie per un determinato gruppo (es. TIPO_UFFICIO, SETTORE)
 router.get('/api/attributes/:group', async (req, res) => {
     const { group } = req.params;
     try {
+        const pb = await getPb();
         const records = await pb.collection('categorie').getFullList({
             filter: `gruppo = "${group}"`,
             sort: 'valore',
@@ -42,6 +39,7 @@ router.get('/api/attributes/:entity/:id/tags', async (req, res) => {
     }
 
     try {
+        const pb = await getPb();
         const record = await pb.collection(collectionName).getOne(id, {
             expand: 'categorie'
         });

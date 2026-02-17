@@ -30,7 +30,7 @@
                     </div>
                     <div class="form-control">
                         <label class="label py-0 pb-1"><span class="label-text">Chiave *</span></label>
-                        <input type="text" name="chiave" class="input input-bordered input-sm w-full" required placeholder="Es. IT">
+                        <input type="text" name="chiave" class="input input-bordered input-sm w-full uppercase" required placeholder="Es. ABC" maxlength="3" minlength="3" pattern="[A-Z]{3}" title="3 lettere maiuscole" oninput="this.value = this.value.toUpperCase()">
                     </div>
                     <div class="form-control">
                         <label class="label py-0 pb-1"><span class="label-text">Valore *</span></label>
@@ -77,7 +77,7 @@
                                         <input type="text" class="input input-bordered input-xs w-full" id="edit-gruppo-<%= item.id %>" value="<%= item.gruppo %>">
                                     </td>
                                     <td class="edit-mode hidden p-1">
-                                        <input type="text" class="input input-bordered input-xs w-full" id="edit-chiave-<%= item.id %>" value="<%= item.chiave %>">
+                                        <input type="text" class="input input-bordered input-xs w-full uppercase" id="edit-chiave-<%= item.id %>" value="<%= item.chiave %>" maxlength="3" minlength="3" pattern="[A-Z]{3}" oninput="this.value = this.value.toUpperCase()">
                                     </td>
                                     <td class="edit-mode hidden p-1">
                                         <input type="text" class="input input-bordered input-xs w-full" id="edit-valore-<%= item.id %>" value="<%= item.valore %>">

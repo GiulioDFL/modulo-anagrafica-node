@@ -21,23 +21,63 @@
                     
                     <div class="form-control">
                         <label for="ragione_sociale" class="label"><span class="label-text">Ragione Sociale <span class="text-error">*</span></span></label>
-                        <input type="text" class="input input-bordered w-full" id="ragione_sociale" name="ragione_sociale" required>
+                        <input type="text" class="input input-bordered w-full uppercase" id="ragione_sociale" name="ragione_sociale" required oninput="this.value = this.value.toUpperCase()">
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="form-control">
                             <label for="partita_iva" class="label"><span class="label-text">Partita IVA</span></label>
-                            <input type="text" class="input input-bordered w-full" id="partita_iva" name="partita_iva">
+                            <input type="text" class="input input-bordered w-full" id="partita_iva" name="partita_iva" maxlength="11" pattern="\d{11}" title="Deve essere composta da 11 cifre numeriche">
                         </div>
                         <div class="form-control">
                             <label for="codice_fiscale" class="label"><span class="label-text">Codice Fiscale</span></label>
-                            <input type="text" class="input input-bordered w-full" id="codice_fiscale" name="codice_fiscale">
+                            <input type="text" class="input input-bordered w-full uppercase" id="codice_fiscale" name="codice_fiscale" minlength="11" maxlength="16" pattern="[A-Z0-9]{11,16}" title="Deve essere alfanumerico (11 o 16 caratteri)" oninput="this.value = this.value.toUpperCase()">
                         </div>
                     </div>
                     <div class="form-control">
                         <label for="codice_destinatario" class="label"><span class="label-text">Codice Destinatario</span></label>
-                        <input type="text" class="input input-bordered w-full" id="codice_destinatario" name="codice_destinatario">
+                        <input type="text" class="input input-bordered w-full uppercase" id="codice_destinatario" name="codice_destinatario" maxlength="7" pattern="[A-Z0-9]{7}" title="Deve essere di 7 caratteri alfanumerici" oninput="this.value = this.value.toUpperCase()">
                     </div>
                     
+                    <!-- Gestione Contatti -->
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Contatti</span></label>
+                        <div class="border rounded-lg overflow-hidden">
+                            <table class="table table-sm w-full">
+                                <thead class="bg-base-200">
+                                    <tr>
+                                        <th class="w-1/4">Tipo</th>
+                                        <th>Valore</th>
+                                        <th class="w-16"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="contactsList">
+                                    <!-- Righe contatti generate via JS -->
+                                </tbody>
+                                <tfoot class="bg-base-100 border-t">
+                                    <tr>
+                                        <td class="p-2">
+                                            <select id="newContactType" class="select select-bordered select-sm w-full">
+                                                <option value="email">Email</option>
+                                                <option value="pec">PEC</option>
+                                                <option value="mobile">Mobile</option>
+                                                <option value="phone">Telefono</option>
+                                            </select>
+                                        </td>
+                                        <td class="p-2">
+                                            <input type="text" id="newContactValue" class="input input-bordered input-sm w-full" placeholder="Inserisci contatto...">
+                                        </td>
+                                        <td class="p-2 text-right">
+                                            <button type="button" class="btn btn-sm btn-square btn-success text-white" onclick="addNewContact()" title="Aggiungi">
+                                                <i class="bi bi-plus-lg"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        <input type="hidden" name="contatti_json" id="contatti_json">
+                    </div>
+
                     <!-- Componente Multi-Tag per Settori -->
                     <div id="settoriContainer" class="form-control">
                     </div>
@@ -55,14 +95,13 @@
         const isNew = id === 'nuova';
         const form = document.getElementById('societaForm');
         const saveButton = document.getElementById('saveButton');
+        let settoriControl = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             // Inizializzazione Componente Multi-Tag
-            await initMultiTag({
+            settoriControl = await initMultiTag({
                 containerId: 'settoriContainer',
-                group: 'TIPI_SETTORE',
-                entityId: isNew ? null : id,
-                entityType: 'societa',
+                group: 'SETTORE',
                 inputName: 'cva_settore_id',
                 label: 'Settori'
             });
@@ -88,6 +127,21 @@
                         document.getElementById('partita_iva').value = item.partita_iva || '';
                         document.getElementById('codice_fiscale').value = item.codice_fiscale || '';
                         document.getElementById('codice_destinatario').value = item.codice_destinatario || '';
+                        
+                        // Caricamento contatti esistenti
+                        if (item.expand && item.expand.contatti) {
+                            contactsData = Array.isArray(item.expand.contatti) ? item.expand.contatti : [item.expand.contatti];
+                            // Mappiamo per sicurezza
+                            contactsData = contactsData.map(c => ({ id: c.id, tipo: c.tipo, valore: c.valore }));
+                            renderContacts();
+                        }
+
+                        // Popolamento Settori
+                        if (item.expand && item.expand.categorie && settoriControl) {
+                            const cats = Array.isArray(item.expand.categorie) ? item.expand.categorie : [item.expand.categorie];
+                            const catIds = cats.map(c => c.id);
+                            settoriControl.setSelection(catIds);
+                        }
                     } else {
                         alert("Società non trovata.");
                     }
@@ -102,6 +156,9 @@
                 <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                 Salvataggio...
             `;
+
+            // Serializza i contatti nel campo hidden
+            document.getElementById('contatti_json').value = JSON.stringify(contactsData);
 
             const formData = new URLSearchParams(new FormData(this));
             
@@ -133,7 +190,7 @@
 
         // Componente Multi-Tag Standardizzato
         async function initMultiTag(config) {
-            const { containerId, group, entityId, entityType, inputName, label } = config;
+            const { containerId, group, inputName, label } = config;
             const container = document.getElementById(containerId);
             
             // UI: Dropdown con Checkboxes per selezione multipla
@@ -194,15 +251,6 @@
                 optionsContainer.innerHTML = '<div class="text-error p-2">Errore caricamento opzioni</div>';
             }
 
-            // Carica Tag Esistenti
-            if (entityId) {
-                try {
-                    const res = await fetch(`/api/attributes/${entityType}/${entityId}/tags?group=${group}`);
-                    const tags = await res.json();
-                    tags.forEach(t => selectedIds.add(String(t.id)));
-                } catch(e) { console.error('Errore caricamento tag', e); }
-            }
-
             // Sincronizza UI iniziale
             syncUI();
 
@@ -250,6 +298,65 @@
                     });
                 }
             }
+
+            // API pubblica del componente
+            return {
+                setSelection: (ids) => {
+                    selectedIds = new Set(ids.map(String));
+                    syncUI();
+                }
+            };
+        }
+
+        // --- Gestione Contatti ---
+        
+        let contactsData = [];
+
+        function renderContacts() {
+            const tbody = document.getElementById('contactsList');
+            tbody.innerHTML = '';
+            
+            contactsData.forEach((contact, index) => {
+            // Icona in base al tipo
+            let icon = 'bi-chat-text';
+            if(contact.tipo === 'email') icon = 'bi-envelope';
+            if(contact.tipo === 'pec') icon = 'bi-envelope-check';
+            if(contact.tipo === 'mobile') icon = 'bi-phone';
+            if(contact.tipo === 'phone') icon = 'bi-telephone';
+
+            // Aggiungi riga visuale
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="capitalize"><i class="bi ${icon} mr-2 opacity-70"></i>${contact.tipo}</td>
+                <td class="font-medium">${contact.valore}</td>
+                <td class="text-right">
+                    <button type="button" class="btn btn-xs btn-square btn-ghost text-error" onclick="removeContact(${index})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            });
+        }
+
+        function addNewContact() {
+            const typeSelect = document.getElementById('newContactType');
+            const valueInput = document.getElementById('newContactValue');
+            const tipo = typeSelect.value;
+            const valore = valueInput.value.trim();
+
+            if (!valore) return;
+
+            // Aggiungi all'array locale
+            contactsData.push({ tipo, valore });
+            renderContacts();
+            
+            valueInput.value = ''; // Reset input
+        }
+
+        function removeContact(index) {
+            contactsData.splice(index, 1);
+            renderContacts();
         }
     </script>
 </body>

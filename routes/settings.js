@@ -1,58 +1,69 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database/definition/init');
+const getPb = require('../pocketbase-client');
 
 // GET /settings - Visualizzazione tabella
-router.get('/settings', (req, res) => {
-    const sql = "SELECT * FROM chiave_valore_attributo ORDER BY gruppo ASC, chiave ASC";
-    db.all(sql, [], (err, rows) => {
-        if (err) {
-            return res.status(500).send("Errore database: " + err.message);
-        }
-        res.render('settings', { items: rows });
-    });
+router.get('/settings', async (req, res) => {
+    try {
+        const pb = await getPb();
+        const records = await pb.collection('categorie').getFullList({
+            sort: 'gruppo,chiave'
+        });
+        res.render('settings', { items: records });
+    } catch (err) {
+        res.status(500).send("Errore PocketBase: " + err.message);
+    }
 });
 
 // POST /settings/add - Inserimento
-router.post('/settings/add', (req, res) => {
+router.post('/settings/add', async (req, res) => {
     const { gruppo, chiave, valore, attributo } = req.body;
-    // Validazione base
-    if (!gruppo || !chiave || !valore) {
-        return res.status(400).json({ error: "Gruppo, Chiave e Valore sono obbligatori" });
-    }
     
-    const sql = "INSERT INTO chiave_valore_attributo (gruppo, chiave, valore, attributo) VALUES (?, ?, ?, ?)";
-    db.run(sql, [gruppo, chiave, valore, attributo], function(err) {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.json({ success: true, id: this.lastID });
-    });
+    try {
+        const pb = await getPb();
+        const data = {
+            gruppo,
+            chiave: (chiave || '').toUpperCase(),
+            valore,
+            attributo
+        };
+        const record = await pb.collection('categorie').create(data);
+        res.json({ success: true, id: record.id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // POST /settings/update/:id - Modifica
-router.post('/settings/update/:id', (req, res) => {
+router.post('/settings/update/:id', async (req, res) => {
     const { gruppo, chiave, valore, attributo } = req.body;
     const { id } = req.params;
-    const sql = "UPDATE chiave_valore_attributo SET gruppo = ?, chiave = ?, valore = ?, attributo = ? WHERE id = ?";
-    db.run(sql, [gruppo, chiave, valore, attributo, id], function(err) {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.json({ success: true, changes: this.changes });
-    });
+    
+    try {
+        const pb = await getPb();
+        const data = {
+            gruppo,
+            chiave: (chiave || '').toUpperCase(),
+            valore,
+            attributo
+        };
+        await pb.collection('categorie').update(id, data);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // POST /settings/delete/:id - Eliminazione
-router.post('/settings/delete/:id', (req, res) => {
+router.post('/settings/delete/:id', async (req, res) => {
     const { id } = req.params;
-    const sql = "DELETE FROM chiave_valore_attributo WHERE id = ?";
-    db.run(sql, [id], function(err) {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.json({ success: true, changes: this.changes });
-    });
+    try {
+        const pb = await getPb();
+        await pb.collection('categorie').delete(id);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 module.exports = router;

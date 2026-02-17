@@ -1,14 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const PocketBase = require('pocketbase').default || require('pocketbase');
-require('dotenv').config();
-
-// Inizializzazione client PocketBase
-const pb = new PocketBase(process.env.POCKET_BASE_URI);
+const getPb = require('../../pocketbase-client');
 
 // GET /api/anagrafica/sedi
 router.get('/api/anagrafica/sedi', async (req, res) => {
   try {
+    const pb = await getPb();
     const { id, societa_id, search } = req.query;
 
     // Helper per escape caratteri nelle stringhe di filtro
@@ -36,7 +33,8 @@ router.get('/api/anagrafica/sedi', async (req, res) => {
           'indirizzo.provincia',
           'indirizzo.paese',
           'categorie.valore',
-          'contatti.valore'
+          'contatti.valore',
+          'contatti.tipo'
         ];
 
         const terms = search.trim().split(/\s+/).filter(Boolean);
@@ -52,7 +50,10 @@ router.get('/api/anagrafica/sedi', async (req, res) => {
             const negativeConditions = searchableFields.map(f => `${f} !~ "${escapedWord}"`);
             searchFilters.push(`(${negativeConditions.join(' && ')})`);
           } else {
-            const positiveConditions = searchableFields.map(f => `${f} ~ "${escapedWord}"`);
+            const positiveConditions = searchableFields.map(f => {
+              const operator = (f.startsWith('categorie.') || f.startsWith('contatti.')) ? '?~' : '~';
+              return `${f} ${operator} "${escapedWord}"`;
+            });
             searchFilters.push(`(${positiveConditions.join(' || ')})`);
           }
         });

@@ -1,10 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const PocketBase = require('pocketbase').default || require('pocketbase');
-require('dotenv').config();
-
-// Inizializzazione client PocketBase
-const pb = new PocketBase(process.env.POCKET_BASE_URI);
+const getPb = require('../../pocketbase-client');
 
 // POST /anagrafica/gestione-societa/delete (Eliminazione)
 router.post('/anagrafica/gestione-societa/delete', async (req, res) => {
@@ -15,6 +11,7 @@ router.post('/anagrafica/gestione-societa/delete', async (req, res) => {
   }
 
   try {
+    const pb = await getPb();
     await pb.collection('societa').delete(id);
     res.redirect('/anagrafica/gestione-societa');
   } catch (err) {

@@ -1,10 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const PocketBase = require('pocketbase').default || require('pocketbase');
-require('dotenv').config();
-
-// Inizializzazione client PocketBase
-const pb = new PocketBase(process.env.POCKET_BASE_URI);
+const getPb = require('../../pocketbase-client');
 
 // POST /anagrafica/gestione-referenti/add
 router.post('/anagrafica/gestione-referenti/add', async (req, res) => {
@@ -17,6 +13,7 @@ router.post('/anagrafica/gestione-referenti/add', async (req, res) => {
   }
 
   try {
+    const pb = await getPb();
     // 1. Gestione Persona Fisica
     // Se non viene passato un ID persona, verifichiamo se dobbiamo crearne una nuova
     if (!persona_id) {

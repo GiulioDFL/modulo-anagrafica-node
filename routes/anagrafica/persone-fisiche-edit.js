@@ -1,10 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const PocketBase = require('pocketbase').default || require('pocketbase');
-require('dotenv').config();
-
-// Inizializzazione client PocketBase
-const pb = new PocketBase(process.env.POCKET_BASE_URI);
+const getPb = require('../../pocketbase-client');
 
 // POST /anagrafica/gestione-persone-fisiche/edit
 router.post('/anagrafica/gestione-persone-fisiche/edit', async (req, res) => {
@@ -38,6 +34,7 @@ router.post('/anagrafica/gestione-persone-fisiche/edit', async (req, res) => {
   };
 
   try {
+    const pb = await getPb();
     await pb.collection('persone_fisiche').update(id, data);
     res.json({ success: true, message: "Persona fisica aggiornata con successo" });
   } catch (err) {

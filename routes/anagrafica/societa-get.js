@@ -1,15 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const PocketBase = require('pocketbase').default || require('pocketbase');
-require('dotenv').config();
-
-// Inizializzazione client PocketBase
-const pb = new PocketBase(process.env.POCKET_BASE_URI);
+const getPb = require('../../pocketbase-client');
 
 // GET /api/anagrafica/societa (API Dati JSON)
 router.get('/api/anagrafica/societa', async (req, res) => {
   try {
-    const { id, search } = req.query;
+    const pb = await getPb();
+    const { id, ragione_sociale, partita_iva, codice_fiscale, codice_destinatario, categoria, contatto } = req.query;
 
     // Helper per escape caratteri nelle stringhe di filtro
     const escape = (str) => (str || '').replace(/"/g, '\\"');
@@ -19,46 +16,17 @@ router.get('/api/anagrafica/societa', async (req, res) => {
     // Se viene fornito un ID, ha la priorità e cerchiamo solo quello.
     if (id) {
       filterString = `id = "${escape(id)}"`;
-    } else if (search) {
-      // Logica di ricerca "DataTable.js style" su più campi
-      const searchableFields = [
-        'ragione_sociale',
-        'partita_iva',
-        'codice_fiscale',
-        'codice_destinatario',
-        'categorie.valore',
-        'contatti.valore'
-      ];
+    } else {
+      const filters = [];
+      if (ragione_sociale) filters.push(`ragione_sociale ~ "${escape(ragione_sociale)}"`);
+      if (partita_iva) filters.push(`partita_iva ~ "${escape(partita_iva)}"`);
+      if (codice_fiscale) filters.push(`codice_fiscale ~ "${escape(codice_fiscale)}"`);
+      if (codice_destinatario) filters.push(`codice_destinatario ~ "${escape(codice_destinatario)}"`);
+      if (categoria) filters.push(`categorie.valore ?~ "${escape(categoria)}"`);
+      if (contatto) filters.push(`contatti.valore ?~ "${escape(contatto)}"`);
 
-      const terms = search.trim().split(/\s+/).filter(Boolean); // Rimuove spazi extra e parole vuote
-      const mainFilters = [];
-
-      terms.forEach(term => {
-        const isNegative = term.startsWith('!');
-        const word = isNegative ? term.substring(1) : term;
-
-        if (!word) return; // Salta se la parola è vuota (es. solo "!")
-
-        const escapedWord = escape(word);
-
-        if (isNegative) {
-          // Deve NON contenere la parola in NESSUN campo
-          const negativeConditions = searchableFields.map(field =>
-            `${field} !~ "${escapedWord}"`
-          );
-          mainFilters.push(`(${negativeConditions.join(' && ')})`);
-        } else {
-          // Deve contenere la parola in ALMENO UN campo
-          const positiveConditions = searchableFields.map(field =>
-            `${field} ~ "${escapedWord}"`
-          );
-          mainFilters.push(`(${positiveConditions.join(' || ')})`);
-        }
-      });
-
-      filterString = mainFilters.join(' && ');
+      filterString = filters.join(' && ');
     }
-
     // Recupero dati dalla collection 'societa'
     // getFullList recupera tutti i record corrispondenti (senza paginazione di default)
     const records = await pb.collection('societa').getFullList({

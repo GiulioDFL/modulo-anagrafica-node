@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 
 // Imposta EJS come view engine
 app.set('view engine', 'ejs');
@@ -12,7 +12,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Rotte
-app.use(require('./routes/home'));
 app.use(require('./routes/anagrafica/societa-get'));
 app.use(require('./routes/anagrafica/societa-view'));
 app.use(require('./routes/anagrafica/societa-dettaglio'));
@@ -45,6 +44,7 @@ app.use(require('./routes/anagrafica/persone-fisiche-edit'));
 app.use(require('./routes/util/gemini'));
 app.use(require('./routes/util/attributes'));
 app.use(require('./routes/settings'));
+app.use(require('./routes/home'));
 
 // Avvio del server
 app.listen(port, '0.0.0.0', () => {
