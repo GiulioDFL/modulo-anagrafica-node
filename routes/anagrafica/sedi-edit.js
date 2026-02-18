@@ -1,39 +1,65 @@
 const express = require('express');
 const router = express.Router();
-const PocketBase = require('pocketbase').default || require('pocketbase');
-require('dotenv').config();
-
-// Inizializzazione client PocketBase
-const pb = new PocketBase(process.env.POCKET_BASE_URI);
+const getPb = require('../../pocketbase-client');
 
 router.post('/anagrafica/gestione-sedi/edit', async (req, res) => {
-  let { id, indirizzo_id, cva_tipo_sede_id, via, numero_civico, cap, comune, provincia, paese } = req.body;
+  let { id, indirizzo_id, societa_id, tipo_sede_id, is_legal_original, via, numero_civico, cap, comune, provincia, paese } = req.body;
 
-  if (!id || !indirizzo_id) return res.status(400).json({ error: "ID mancanti." });
+  if (!id || !societa_id || !tipo_sede_id) {
+    return res.status(400).json({ error: "ID Sede, Società e Tipo Sede sono obbligatori." });
+  }
 
-  // Formattazione
-  via = (via || '').trim();
-  numero_civico = (numero_civico || '').trim();
-  cap = (cap || '').trim();
-  comune = (comune || '').trim().toUpperCase();
-  provincia = (provincia || '').trim().toUpperCase();
-  paese = (paese || '').trim().toUpperCase();
-
-  const tipiSede = Array.isArray(cva_tipo_sede_id) ? cva_tipo_sede_id : (cva_tipo_sede_id ? [cva_tipo_sede_id] : []);
+  const wasLegal = is_legal_original === 'true';
 
   try {
-    // 1. Aggiornamento Indirizzo
-    const indirizzoData = { via, numero_civico, cap, comune, provincia, paese };
-    await pb.collection('indirizzi').update(indirizzo_id, indirizzoData);
+    const pb = await getPb();
+    const catSedeLegale = await pb.collection('categorie').getFirstListItem('gruppo="SEDE" && chiave="LEG"');
+    const isNowLegal = tipo_sede_id === catSedeLegale.id;
 
-    // 2. Aggiornamento Sede (Categorie)
-    const sedeData = {
-      categorie: tipiSede
+    // 1. Aggiorna sempre l'indirizzo
+    const indirizzoData = { 
+      via: (via || '').trim(), 
+      numero_civico: (numero_civico || '').trim(), 
+      cap: (cap || '').trim(), 
+      comune: (comune || '').trim().toUpperCase(), 
+      provincia: (provincia || '').trim().toUpperCase(), 
+      paese: (paese || '').trim().toUpperCase()
     };
-    await pb.collection('sedi').update(id, sedeData);
+    // L'ID dell'indirizzo è `id` se era legale, altrimenti `indirizzo_id`
+    const currentIndirizzoId = wasLegal ? id : indirizzo_id;
+    await pb.collection('indirizzi').update(currentIndirizzoId, indirizzoData);
 
-    res.json({ success: true, message: "Sede aggiornata con successo" });
+    // 2. Gestisci le transizioni di stato
+    if (wasLegal && isNowLegal) {
+      // CASO 1: Legale -> Legale (solo modifica indirizzo, già fatta)
+      // Nessuna operazione aggiuntiva richiesta
+    } else if (!wasLegal && !isNowLegal) {
+      // CASO 2: Operativa -> Operativa (modifica categoria sede)
+      await pb.collection('sedi').update(id, { categorie: [tipo_sede_id] });
+    } else if (!wasLegal && isNowLegal) {
+      // CASO 3: Operativa -> Legale
+      // Aggiorna la società con il nuovo indirizzo di sede legale
+      await pb.collection('societa').update(societa_id, { 'sede_legale': currentIndirizzoId });
+      // Elimina il vecchio record dalla tabella 'sedi'
+      await pb.collection('sedi').delete(id);
+    } else if (wasLegal && !isNowLegal) {
+      // CASO 4: Legale -> Operativa
+      // Rimuovi il riferimento di sede legale dalla società
+      await pb.collection('societa').update(societa_id, { 'sede_legale': null });
+      // Crea un nuovo record in 'sedi'
+      await pb.collection('sedi').create({
+        societa: societa_id,
+        indirizzo: currentIndirizzoId,
+        categorie: [tipo_sede_id]
+      });
+    }
+
+    res.json({ success: true, message: "Sede aggiornata con successo." });
   } catch (err) {
+    if (err.response && err.response.data) {
+        const details = Object.values(err.response.data).map(v => v.message).join('. ');
+        return res.status(400).json({ error: `Errore validazione: ${details}` });
+    }
     res.status(500).json({ error: "Errore aggiornamento: " + err.message });
   }
 });

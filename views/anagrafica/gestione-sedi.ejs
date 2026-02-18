@@ -150,9 +150,9 @@
                                     <!-- Azioni -->
                                     <div class="card-actions justify-end mt-4 pt-4 border-t border-base-200">
                                         <div class="join">
-                                            <a href="/anagrafica/dettaglio-sede/${item.id}?societa_id=${societaId}" target="_blank" class="btn btn-sm btn-primary join-item" title="Modifica"><i class="bi bi-pencil-square"></i></a>
-                                            <a href="/anagrafica/gestione-uffici?societa_id=${societaId}&sede_id=${item.id}" target="_blank" class="btn btn-sm btn-neutral join-item" title="Uffici"><i class="bi bi-building"></i></a>
-                                            <a href="/anagrafica/gestione-referenti?societa_id=${societaId}&sede_id=${item.id}" target="_blank" class="btn btn-sm btn-warning text-white join-item" title="Referenti"><i class="bi bi-people"></i></a>
+                                            <a href="/anagrafica/dettaglio-sede/${item.id}?societa_id=${item.societa}&is_legal=${item.is_legal}" target="_blank" class="btn btn-sm btn-primary join-item" title="Modifica"><i class="bi bi-pencil-square"></i></a>
+                                            <a href="/anagrafica/gestione-uffici?societa_id=${item.societa}&sede_id=${item.id}" target="_blank" class="btn btn-sm btn-neutral join-item" title="Uffici"><i class="bi bi-building"></i></a>
+                                            <a href="/anagrafica/gestione-referenti?societa_id=${item.societa}&sede_id=${item.id}" target="_blank" class="btn btn-sm btn-warning text-white join-item" title="Referenti"><i class="bi bi-people"></i></a>
                                         </div>
                                         
                                         <button onclick="deleteSede('${item.id}')" class="btn btn-sm btn-error text-white" title="Elimina">

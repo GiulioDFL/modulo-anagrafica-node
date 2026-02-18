@@ -24,14 +24,19 @@
                 <form id="sediForm" autocomplete="off" class="flex flex-col gap-4">
                     <input type="hidden" id="id" name="id" value="<%= id %>">
                     <input type="hidden" id="indirizzo_id" name="indirizzo_id">
+                    <input type="hidden" id="is_legal_original" name="is_legal_original" value="false">
                     
                     <div class="form-control">
                         <label class="label"><span class="label-text">Società <span class="text-error">*</span></span></label>
                         <select class="select select-bordered w-full" id="societa_id" name="societa_id" required></select>
                     </div>
 
-                    <!-- Componente Multi-Tag per Tipi Sede -->
-                    <div id="tipiSedeContainer" class="form-control"></div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text">Tipo Sede <span class="text-error">*</span></span></label>
+                        <select class="select select-bordered w-full" id="tipo_sede_id" name="tipo_sede_id" required>
+                            <option disabled selected value="">Caricamento...</option>
+                        </select>
+                    </div>
 
                     <div class="divider">Indirizzo</div>
                     
@@ -115,16 +120,7 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             await loadSocietaDropdown();
-
-            // Inizializzazione Componente Multi-Tag
-            await initMultiTag({
-                containerId: 'tipiSedeContainer',
-                group: 'TIPI_SEDE',
-                entityId: isNew ? null : id,
-                entityType: 'sedi',
-                inputName: 'cva_tipo_sede_id',
-                label: 'Tipi Sede'
-            });
+            await loadTipiSedeDropdown();
             
             if (isNew) {
                 document.getElementById('pageTitle').innerText = "Nuova Sede";
@@ -159,29 +155,48 @@
             socSel.innerHTML = '<option value="">Seleziona Società...</option>';
             socData.forEach(s => socSel.innerHTML += `<option value="${s.id}">${s.ragione_sociale}</option>`);
         }
+        
+        async function loadTipiSedeDropdown() {
+            const sel = document.getElementById('tipo_sede_id');
+            try {
+                const res = await fetch('/api/settings/categorie?gruppo=SEDE');
+                const tipi = await res.json();
+                sel.innerHTML = '<option value="">Seleziona Tipo...</option>';
+                tipi.forEach(tipo => {
+                    sel.innerHTML += `<option value="${tipo.id}">${tipo.valore}</option>`;
+                });
+            } catch (e) {
+                sel.innerHTML = '<option value="">Errore caricamento tipi</option>';
+            }
+        }
 
         function loadData() {
-            fetch(`/api/anagrafica/sedi?id=${id}`)
+            const urlParams = new URLSearchParams(window.location.search);
+            const is_legal = urlParams.get('is_legal') === 'true';
+
+            fetch(`/api/anagrafica/sedi?id=${id}&is_legal=${is_legal}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.length > 0) {
                         const item = data[0];
-                        document.getElementById('indirizzo_id').value = item.indirizzo_id;
-                        document.getElementById('societa_id').value = item.societa_id;
+                        document.getElementById('is_legal_original').value = item.is_legal || false;
+                        document.getElementById('indirizzo_id').value = item.indirizzo;
+                        document.getElementById('societa_id').value = item.societa;
+                        document.getElementById('tipo_sede_id').value = item.expand.categorie[0]?.id || '';
                         
-                        if (item.ragione_sociale) {
+                        if (item.expand?.societa) {
                             renderContext([
-                                { label: 'Società', value: item.ragione_sociale, url: `/anagrafica/dettaglio-societa/${item.societa_id}` }
+                                { label: 'Società', value: item.expand.societa.ragione_sociale, url: `/anagrafica/dettaglio-societa/${item.societa}` }
                             ]);
                             document.getElementById('societa_id').closest('.form-control').classList.add('hidden');
                         }
                         
-                        document.getElementById('via').value = item.via || '';
-                        document.getElementById('numero_civico').value = item.numero_civico || '';
-                        document.getElementById('cap').value = item.cap || '';
-                        document.getElementById('comune').value = item.comune || '';
-                        document.getElementById('provincia').value = item.provincia || '';
-                        document.getElementById('paese').value = item.paese || 'IT';
+                        document.getElementById('via').value = item.expand.indirizzo?.via || '';
+                        document.getElementById('numero_civico').value = item.expand.indirizzo?.numero_civico || '';
+                        document.getElementById('cap').value = item.expand.indirizzo?.cap || '';
+                        document.getElementById('comune').value = item.expand.indirizzo?.comune || '';
+                        document.getElementById('provincia').value = item.expand.indirizzo?.provincia || '';
+                        document.getElementById('paese').value = item.expand.indirizzo?.paese || 'IT';
                     } else {
                         alert("Sede non trovata.");
                     }
@@ -271,127 +286,6 @@
                 list.appendChild(div);
             });
             document.getElementById('contextInfo').classList.remove('hidden');
-        }
-
-        // Componente Multi-Tag Standardizzato
-        async function initMultiTag(config) {
-            const { containerId, group, entityId, entityType, inputName, label } = config;
-            const container = document.getElementById(containerId);
-            
-            // UI: Dropdown con Checkboxes per selezione multipla
-            container.innerHTML = `
-                <label class="label"><span class="label-text">${label} <span class="text-error">*</span></span></label>
-                <div class="dropdown w-full">
-                    <div tabindex="0" role="button" class="input input-bordered w-full flex items-center justify-between h-auto min-h-[3rem] py-2" id="dropdown_btn_${inputName}">
-                        <div id="selected_tags_${inputName}" class="flex flex-wrap gap-1">
-                            <span class="text-gray-400">Seleziona...</span>
-                        </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-50" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                    </div>
-                    <div tabindex="0" class="dropdown-content z-[1] card card-compact w-full p-2 shadow bg-base-100 border border-base-200 max-h-60 overflow-y-auto mt-1">
-                        <div class="flex flex-col gap-1" id="options_container_${inputName}">
-                            <div class="flex justify-center p-2"><span class="loading loading-spinner loading-sm"></span></div>
-                        </div>
-                    </div>
-                </div>
-                <div id="inputs_${inputName}"></div>
-            `;
-            
-            const optionsContainer = document.getElementById(`options_container_${inputName}`);
-            const selectedTagsContainer = document.getElementById(`selected_tags_${inputName}`);
-            const inputsContainer = document.getElementById(`inputs_${inputName}`);
-            let selectedIds = new Set();
-            let optionsMap = new Map();
-
-            // Carica Opzioni
-            try {
-                const res = await fetch(`/api/attributes/${group}`);
-                const options = await res.json();
-                optionsContainer.innerHTML = '';
-                options.forEach(opt => {
-                    optionsMap.set(String(opt.id), opt.valore);
-                    
-                    const label = document.createElement('label');
-                    label.className = 'label cursor-pointer justify-start gap-3 hover:bg-base-200 rounded-lg p-2';
-                    
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.className = 'checkbox checkbox-sm checkbox-primary';
-                    checkbox.value = opt.id;
-                    
-                    checkbox.addEventListener('change', (e) => {
-                        toggleTag(e.target.value, e.target.checked);
-                    });
-
-                    const span = document.createElement('span');
-                    span.className = 'label-text';
-                    span.textContent = opt.valore;
-
-                    label.appendChild(checkbox);
-                    label.appendChild(span);
-                    optionsContainer.appendChild(label);
-                });
-            } catch(e) { 
-                console.error('Errore caricamento opzioni', e); 
-                optionsContainer.innerHTML = '<div class="text-error p-2">Errore caricamento opzioni</div>';
-            }
-
-            // Carica Tag Esistenti
-            if (entityId) {
-                try {
-                    const res = await fetch(`/api/attributes/${entityType}/${entityId}/tags?group=${group}`);
-                    const tags = await res.json();
-                    tags.forEach(t => selectedIds.add(String(t.id)));
-                } catch(e) { console.error('Errore caricamento tag', e); }
-            }
-
-            // Sincronizza UI iniziale
-            syncUI();
-
-            function toggleTag(id, isChecked) {
-                if (isChecked) selectedIds.add(String(id));
-                else selectedIds.delete(String(id));
-                syncUI();
-            }
-
-            function syncUI() {
-                // Aggiorna Checkbox
-                const checkboxes = optionsContainer.querySelectorAll('input[type="checkbox"]');
-                checkboxes.forEach(cb => {
-                    cb.checked = selectedIds.has(cb.value);
-                });
-
-                // Aggiorna Inputs Hidden
-                inputsContainer.innerHTML = '';
-                selectedIds.forEach(id => {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = inputName;
-                    input.value = id;
-                    inputsContainer.appendChild(input);
-                });
-
-                // Aggiorna Visualizzazione Tags nel bottone
-                selectedTagsContainer.innerHTML = '';
-                if (selectedIds.size === 0) {
-                    selectedTagsContainer.innerHTML = '<span class="text-gray-400">Seleziona...</span>';
-                } else {
-                    selectedIds.forEach(id => {
-                        const text = optionsMap.get(id) || id;
-                        const badge = document.createElement('div');
-                        badge.className = 'badge badge-ghost bg-blue-50 text-blue-700 border-blue-200 h-auto py-2 pl-3 pr-2 gap-2 rounded-lg shadow-sm';
-                        badge.innerHTML = `<span class="font-medium">${text}</span><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-4 h-4 stroke-current cursor-pointer hover:text-blue-900 transition-colors"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>`;
-                        
-                        // Gestione rimozione tag tramite icona X
-                        badge.querySelector('svg').addEventListener('click', (e) => {
-                            e.stopPropagation(); // Evita l'apertura/chiusura del dropdown
-                            toggleTag(id, false);
-                        });
-                        
-                        selectedTagsContainer.appendChild(badge);
-                    });
-                }
-            }
         }
     </script>
 </body>
