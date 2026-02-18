@@ -34,12 +34,18 @@
         <!-- Filtri -->
         <div class="card bg-base-100 shadow-xl mb-6">
             <div class="card-body p-6">
-                <form id="filterForm" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end" autocomplete="off">
-                    <div class="md:col-span-4">
-                        <label for="search" class="label py-0 pb-1"><span class="label-text">Cerca</span></label>
-                        <input type="text" class="input input-bordered input-sm w-full" id="search" name="search" placeholder="Indirizzo, Comune, Tipo...">
+                <form id="filterForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end" autocomplete="off">
+                    <div class="form-control">
+                        <label class="label py-0 pb-1"><span class="label-text">Indirizzo</span></label>
+                        <input type="text" class="input input-bordered input-sm w-full" name="search" placeholder="Via, comune, CAP...">
                     </div>
-                    <div class="md:col-span-8 flex justify-end gap-2 mt-2">
+                    <div class="form-control">
+                        <label class="label py-0 pb-1"><span class="label-text">Tipo Sede</span></label>
+                        <div id="tipiSedeContainer" class="flex flex-wrap gap-x-4 gap-y-2 pt-1">
+                            <!-- Checkboxes caricate via JS -->
+                        </div>
+                    </div>
+                    <div class="md:col-span-2 flex justify-end gap-2 mt-4 border-t pt-4">
                         <button type="button" class="btn btn-sm btn-ghost" onclick="resetFilters()">Reset</button>
                         <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-search"></i> Cerca</button>
                     </div>
@@ -47,29 +53,20 @@
             </div>
         </div>
 
-        <!-- Tabella -->
-        <div class="card bg-base-100 shadow-xl">
-            <div class="card-body p-0">
-                <div class="overflow-x-auto rounded-box">
-                    <table class="table table-zebra w-full">
-                        <thead class="bg-base-200 text-base-content uppercase text-xs font-bold">
-                            <tr>
-                                <th id="th-societa">Società</th>
-                                <th>Tipi</th>
-                                <th>Indirizzo</th>
-                                <th class="actions-col text-right pr-4">Azioni</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sediTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
+        <!-- Header Risultati -->
+        <div class="flex justify-between items-center mb-4 px-1">
+            <div id="resultsCount" class="text-sm font-semibold opacity-70">In attesa di ricerca...</div>
+        </div>
+
+        <!-- Grid Risultati (Card) -->
+        <div id="sediContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <!-- Contenuto caricato via AJAX -->
         </div>
     </div>
 
     <script>
-        // Caricamento Dropdown all'avvio
         document.addEventListener('DOMContentLoaded', () => {
+            loadTipiSede();
             loadSedi();
         });
 
@@ -80,12 +77,6 @@
             const formData = new FormData(document.getElementById('filterForm'));
             const params = new URLSearchParams(formData);
             if (societaId) params.append('societa_id', societaId);
-
-            // Gestione visibilità colonna Società
-            const thSocieta = document.getElementById('th-societa');
-            if (thSocieta) {
-                thSocieta.style.display = societaId ? 'none' : '';
-            }
 
             // Aggiorna il link "Nuova Sede" per includere la società se presente
             const newBtn = document.querySelector('a[href*="/anagrafica/dettaglio-sede/nuova"]');
@@ -104,52 +95,104 @@
             fetch(`/api/anagrafica/sedi?${params.toString()}`)
                 .then(res => res.json())
                 .then(data => {
-                    const tbody = document.getElementById('sediTableBody');
-                    tbody.innerHTML = '';
+                    const container = document.getElementById('sediContainer');
+                    const countLabel = document.getElementById('resultsCount');
+                    container.innerHTML = '';
+
                     if (data.error) {
-                        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-error">Errore: ${data.error}</td></tr>`;
+                        container.innerHTML = `<div class="col-span-full text-center py-10 text-error bg-base-100 rounded-box shadow">Errore: ${data.error}</div>`;
+                        countLabel.innerText = 'Errore';
                         return;
                     }
                     if(data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 opacity-60">Nessuna sede trovata.</td></tr>';
+                        container.innerHTML = '<div class="col-span-full text-center py-10 opacity-60 bg-base-100 rounded-box shadow">Nessuna sede trovata con i filtri selezionati.</div>';
+                        countLabel.innerText = '0 risultati trovati';
                         return;
                     }
+
+                    countLabel.innerText = `${data.length} risultati trovati`;
+
                     data.forEach(item => {
-                        const itemJson = JSON.stringify(item).replace(/"/g, '&quot;');
-                        const indirizzo = [item.via, item.numero_civico].filter(x => x).join(' ');
-                        const localita = [item.cap, item.comune, item.provincia ? `(${item.provincia})` : ''].filter(x => x).join(' ');
-                        const indirizzoCompleto = [indirizzo, localita].filter(x => x).join(', ');
+                        const indirizzoData = item.expand?.indirizzo || {};
+                        const via = [indirizzoData.via, indirizzoData.numero_civico].filter(Boolean).join(' ');
+                        const localita = [indirizzoData.cap, indirizzoData.comune, indirizzoData.provincia ? `(${indirizzoData.provincia})` : ''].filter(Boolean).join(' ');
+                        const indirizzoCompleto = [via, localita].filter(Boolean).join(', ') || 'Indirizzo non specificato';
 
-                        const tipiSedeHtml = (item.tipi_sede || '')
-                            .split(', ')
-                            .filter(tag => tag)
-                            .map(tag => `<span class="badge badge-ghost bg-blue-50 text-blue-700 border-blue-200 h-auto py-1 px-2 rounded-lg text-xs">${tag}</span>`)
-                            .join('');
+                        const categorie = item.expand?.categorie ? (Array.isArray(item.expand.categorie) ? item.expand.categorie : [item.expand.categorie]) : [];
+                        const contatti = item.expand?.contatti ? (Array.isArray(item.expand.contatti) ? item.expand.contatti : [item.expand.contatti]) : [];
 
-                        tbody.innerHTML += `
-                            <tr class="hover">
-                                ${societaId ? '' : `<td>${item.societa_id ? `<a href="/anagrafica/dettaglio-societa/${item.societa_id}" target="_blank" class="link link-hover font-bold">${item.ragione_sociale || '-'}</a>` : (item.ragione_sociale || '-')}</td>`}
-                                <td><div class="flex flex-wrap gap-1">${tipiSedeHtml || '-'}</div></td>
-                                <td class="font-bold">${indirizzoCompleto}</td>
-                                <td class="actions-col text-right">
-                                    <div class="flex justify-end gap-1">
-                                        <a href="/anagrafica/dettaglio-sede/${item.id}?societa_id=${societaId}" target="_blank" class="btn btn-sm btn-square btn-primary" title="Dettaglio/Modifica"><i class="bi bi-pencil-square"></i></a>
-                                        <a href="/anagrafica/gestione-uffici?societa_id=${societaId}&sede_id=${item.id}" target="_blank" class="btn btn-sm btn-square btn-neutral" title="Gestione Uffici Sede">
-                                            <i class="bi bi-building"></i>
-                                        </a>
-                                        <a href="/anagrafica/gestione-referenti?societa_id=${societaId}&sede_id=${item.id}" target="_blank" class="btn btn-sm btn-square btn-warning text-white" title="Gestione Referenti Sede">
-                                            <i class="bi bi-people"></i>
-                                        </a>
-                                        <button onclick="deleteSede(${item.id})" class="btn btn-sm btn-square btn-error text-white" title="Elimina"><i class="bi bi-trash"></i></button>
+                        const card = `
+                            <div class="card bg-base-100 shadow-md border border-base-200 hover:shadow-lg transition-shadow duration-200">
+                                <div class="card-body p-5">
+                                    <div class="flex justify-between items-start gap-2">
+                                        <h2 class="card-title text-lg font-bold text-primary break-words w-full">${indirizzoCompleto}</h2>
+                                    </div>
+
+                                    <!-- Tipi Sede -->
+                                    <div class="flex flex-wrap gap-1 mt-3">
+                                        ${categorie.length > 0 ? categorie.map(cat => `<span class="badge badge-ghost bg-blue-50 text-blue-700 border-blue-100 text-xs">${cat.valore}</span>`).join('') : '<span class="text-xs italic opacity-50">Nessun tipo</span>'}
+                                    </div>
+
+                                    <!-- Contatti -->
+                                    <div class="mt-3 space-y-1">
+                                        ${contatti.length > 0 ? contatti.map(c => {
+                                            let icon = 'bi-chat-text';
+                                            if(c.tipo === 'email') icon = 'bi-envelope';
+                                            if(c.tipo === 'pec') icon = 'bi-envelope-check';
+                                            if(c.tipo === 'mobile') icon = 'bi-phone';
+                                            if(c.tipo === 'phone') icon = 'bi-telephone';
+                                            return `<div class="flex items-center gap-2 text-xs truncate" title="${c.tipo}: ${c.valore}">
+                                                <i class="bi ${icon} opacity-70"></i> <span class="opacity-90">${c.valore}</span>
+                                            </div>`;
+                                        }).join('') : '<div class="text-xs italic opacity-50">Nessun contatto</div>'}
+                                    </div>
+
+                                    <!-- Azioni -->
+                                    <div class="card-actions justify-end mt-4 pt-4 border-t border-base-200">
+                                        <div class="join">
+                                            <a href="/anagrafica/dettaglio-sede/${item.id}?societa_id=${societaId}" target="_blank" class="btn btn-sm btn-primary join-item" title="Modifica"><i class="bi bi-pencil-square"></i></a>
+                                            <a href="/anagrafica/gestione-uffici?societa_id=${societaId}&sede_id=${item.id}" target="_blank" class="btn btn-sm btn-neutral join-item" title="Uffici"><i class="bi bi-building"></i></a>
+                                            <a href="/anagrafica/gestione-referenti?societa_id=${societaId}&sede_id=${item.id}" target="_blank" class="btn btn-sm btn-warning text-white join-item" title="Referenti"><i class="bi bi-people"></i></a>
+                                        </div>
+                                        
+                                        <button onclick="deleteSede('${item.id}')" class="btn btn-sm btn-error text-white" title="Elimina">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
                                     </div>
                                 </td>
-                            </tr>`;
+                            </div>
+                        `;
+                        container.innerHTML += card;
                     });
                 });
         }
 
-        document.getElementById('filterForm').addEventListener('submit', (e) => { e.preventDefault(); loadSedi(); });
-        function resetFilters() { document.getElementById('filterForm').reset(); loadSedi(); }
+        function loadTipiSede() {
+            fetch('/api/settings/categorie?gruppo=SEDE')
+                .then(res => res.json())
+                .then(tipi => {
+                    const container = document.getElementById('tipiSedeContainer');
+                    container.innerHTML = ''; // Pulisce opzioni esistenti
+                    tipi.forEach(tipo => {
+                        container.innerHTML += `
+                            <label class="cursor-pointer flex items-center gap-2 select-none">
+                                <input type="checkbox" name="tipi_sede" value="${tipo.id}" class="checkbox checkbox-xs checkbox-primary" />
+                                <span class="label-text text-xs whitespace-nowrap" title="${tipo.valore}">${tipo.valore}</span>
+                            </label>`;
+                    });
+                })
+                .catch(err => console.error('Errore caricamento tipi sede:', err));
+        }
+
+        document.getElementById('filterForm').addEventListener('submit', (e) => { 
+            e.preventDefault(); 
+            loadSedi(); 
+        });
+
+        function resetFilters() { 
+            document.getElementById('filterForm').reset(); 
+            loadSedi(); 
+        }
         
         function deleteSede(id) {
             const i = prompt("Scrivi 'elimina' per confermare:");
@@ -158,8 +201,17 @@
             fetch('/anagrafica/gestione-sedi/delete', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ id: id, confirm_prompt: i })
-            }).then(() => loadSedi());
+                body: JSON.stringify({ id: id, confirm_prompt: 'elimina' })
+            }).then(response => {
+                if (response.ok) {
+                    loadSedi(); // Ricarica i dati in caso di successo
+                } else {
+                    response.text().then(text => alert('Errore eliminazione: ' + text));
+                }
+            }).catch(err => {
+                console.error('Errore fetch delete:', err);
+                alert('Errore di rete durante l\'eliminazione.');
+            });
         }
     </script>
 </body>

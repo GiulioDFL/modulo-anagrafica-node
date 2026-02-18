@@ -15,6 +15,27 @@ router.get('/settings', async (req, res) => {
     }
 });
 
+// GET /api/settings/categorie - API JSON per dropdown filtrate per gruppo
+router.get('/api/settings/categorie', async (req, res) => {
+    try {
+        const pb = await getPb();
+        const { gruppo } = req.query;
+        let filter = '';
+        
+        if (gruppo) {
+            filter = `gruppo = "${(gruppo || '').replace(/"/g, '\\"')}"`;
+        }
+
+        const records = await pb.collection('categorie').getFullList({
+            filter: filter,
+            sort: 'chiave'
+        });
+        res.json(records);
+    } catch (err) {
+        res.status(500).json({ error: "Errore recupero categorie: " + err.message });
+    }
+});
+
 // POST /settings/add - Inserimento
 router.post('/settings/add', async (req, res) => {
     const { gruppo, chiave, valore, attributo } = req.body;

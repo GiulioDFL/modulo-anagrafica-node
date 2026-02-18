@@ -6,7 +6,7 @@ const getPb = require('../../pocketbase-client');
 router.get('/api/anagrafica/sedi', async (req, res) => {
   try {
     const pb = await getPb();
-    const { id, societa_id, search } = req.query;
+    const { id, societa_id, search, tipi_sede } = req.query;
 
     // Helper per escape caratteri nelle stringhe di filtro
     const escape = (str) => (str || '').replace(/"/g, '\\"');
@@ -37,7 +37,9 @@ router.get('/api/anagrafica/sedi', async (req, res) => {
           'contatti.tipo'
         ];
 
-        const terms = search.trim().split(/\s+/).filter(Boolean);
+        // Sanificazione: sostituisce caratteri speciali (virgole, parentesi, ecc.) con spazi
+        // Mantiene caratteri alfanumerici, spazi, accenti e trattini.
+        const terms = search.replace(/[^\w\sàèìòùÀÈÌÒÙ\-]/gi, ' ').trim().split(/\s+/).filter(Boolean);
         const searchFilters = [];
 
         terms.forEach(term => {
@@ -62,6 +64,15 @@ router.get('/api/anagrafica/sedi', async (req, res) => {
           filters.push(`(${searchFilters.join(' && ')})`);
         }
       }
+
+      // Filtro per tipi di sede (da select multi-opzione)
+      if (tipi_sede) {
+        const tipiSedeIds = Array.isArray(tipi_sede) ? tipi_sede : [tipi_sede].filter(Boolean);
+        if (tipiSedeIds.length > 0) {
+            const tipiFilter = tipiSedeIds.map(tid => `categorie.id = "${escape(tid)}"`).join(' || ');
+            filters.push(`(${tipiFilter})`);
+        }
+      }
       
       filterString = filters.join(' && ');
     }
@@ -69,7 +80,7 @@ router.get('/api/anagrafica/sedi', async (req, res) => {
     const records = await pb.collection('sedi').getFullList({
       filter: filterString,
       sort: '-created',
-      expand: 'indirizzo,categorie,contatti',
+      expand: 'indirizzo,categorie,contatti,societa',
     });
 
     res.json(records);
