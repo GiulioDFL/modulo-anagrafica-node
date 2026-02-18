@@ -105,29 +105,46 @@ async function verifyAddress(via, civico, cap, comune, provincia, paese) {
     - Errori: In caso di esito negativo, fornisci una spiegazione estremamente sintetica della causa.
   `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt,
-    config: {
-      tools: [{ googleMaps: {} }],
-    },
-  });
+  let overloadRetries = 0;
+  const maxOverloadRetries = 3;
 
-  console.log("Gemini Response:", JSON.stringify(response, null, 2));
+  while (true) {
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          tools: [{ googleMaps: {} }],
+        },
+      });
 
-  // Recupero sicuro del testo: gestisce casi in cui response.text è undefined
-  let text = response.text;
-  if (typeof text === 'function') {
-    text = text();
+      console.log("Gemini Response:", JSON.stringify(response, null, 2));
+
+      // Recupero sicuro del testo: gestisce casi in cui response.text è undefined
+      let text = response.text;
+      if (typeof text === 'function') {
+        text = text();
+      }
+
+      if (!text && response.candidates && response.candidates.length > 0) {
+        const parts = response.candidates[0].content?.parts || [];
+        text = parts.map(p => p.text || '').join('');
+      }
+
+      if (text && text.trim().length > 0) return text;
+
+      console.log("Gemini: Ricevuti solo dati di grounding. Ritento...");
+    } catch (error) {
+      const isOverload = error.status === 503 || (error.message && error.message.includes('503'));
+      if (isOverload && overloadRetries < maxOverloadRetries) {
+        overloadRetries++;
+        console.log(`Gemini Overload (${overloadRetries}/${maxOverloadRetries}). Ritento...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        continue;
+      }
+      throw error;
+    }
   }
-
-  if (!text && response.candidates && response.candidates.length > 0) {
-    const parts = response.candidates[0].content?.parts || [];
-    text = parts.map(p => p.text || '').join('');
-  }
-
-  return text;
-
 }
 
 router.post('/util/gemini/verify-address', async (req, res) => {
