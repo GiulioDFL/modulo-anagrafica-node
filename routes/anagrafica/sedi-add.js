@@ -3,7 +3,7 @@ const router = express.Router();
 const getPb = require('../../pocketbase-client');
 
 router.post('/anagrafica/gestione-sedi/add', async (req, res) => {
-  let { societa_id, tipo_sede_id, via, numero_civico, cap, comune, provincia, paese } = req.body;
+  let { societa_id, tipo_sede_id, via, numero_civico, cap, comune, provincia, paese, force_legal_seat, old_sede_action, new_type_for_old_sede } = req.body;
 
   // Validazione base
   if (!societa_id || !tipo_sede_id || !paese) {
@@ -20,21 +20,46 @@ router.post('/anagrafica/gestione-sedi/add', async (req, res) => {
 
   try {
     const pb = await getPb();
-    const indirizzoData = { via, numero_civico, cap, comune, provincia, paese };
-    const indirizzoRecord = await pb.collection('indirizzi').create(indirizzoData);
-
     const catSedeLegale = await pb.collection('categorie').getFirstListItem('gruppo="SEDE" && chiave="LEG"');
     const isNowLegal = tipo_sede_id === catSedeLegale.id;
 
+    // --- CONFLICT CHECK ---
     if (isNowLegal) {
-      // È una Sede Legale: aggiorno la società
-      await pb.collection('societa').update(societa_id, {
-        'sede_legale': indirizzoRecord.id
-      });
-      res.json({ success: true, message: "Sede Legale inserita con successo." });
+        const societa = await pb.collection('societa').getOne(societa_id);
+        if (societa.sede_legale && force_legal_seat !== 'true') {
+            return res.status(409).json({
+                conflict: true,
+                message: "Esiste già una Sede Legale registrata. Proseguendo, la vecchia sede legale perderà il suo stato attuale.",
+                old_sede_legale_id: societa.sede_legale
+            });
+        }
+    }
 
+    // --- MAIN EXECUTION ---
+    const indirizzoData = { via, numero_civico, cap, comune, provincia, paese };
+    const indirizzoRecord = await pb.collection('indirizzi').create(indirizzoData);
+
+    if (isNowLegal) {
+      // Handle old legal seat if confirmation was given
+      if (force_legal_seat === 'true') {
+          const societa = await pb.collection('societa').getOne(societa_id);
+          const oldIndirizzoId = societa.sede_legale;
+          if (oldIndirizzoId) {
+              if (old_sede_action === 'reclassify' && new_type_for_old_sede) {
+                  // Create a new 'sedi' record for the old legal seat address
+                  await pb.collection('sedi').create({
+                      societa: societa_id,
+                      indirizzo: oldIndirizzoId,
+                      categorie: [new_type_for_old_sede]
+                  });
+              }
+          }
+      }
+      // Set the new legal seat
+      await pb.collection('societa').update(societa_id, { 'sede_legale': indirizzoRecord.id });
+      res.json({ success: true, message: "Sede Legale inserita con successo." });
     } else {
-      // È una sede standard: creo il record in 'sedi'
+      // It's a standard seat
       const sedeData = {
         societa: societa_id,
         indirizzo: indirizzoRecord.id,
@@ -43,7 +68,6 @@ router.post('/anagrafica/gestione-sedi/add', async (req, res) => {
       await pb.collection('sedi').create(sedeData);
       res.json({ success: true, message: "Sede inserita con successo." });
     }
-
   } catch (err) {
     if (err.response && err.response.data) {
         const details = Object.values(err.response.data).map(v => v.message).join('. ');

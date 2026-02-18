@@ -3,7 +3,7 @@ const router = express.Router();
 const getPb = require('../../pocketbase-client');
 
 router.post('/anagrafica/gestione-sedi/edit', async (req, res) => {
-  let { id, indirizzo_id, societa_id, tipo_sede_id, is_legal_original, via, numero_civico, cap, comune, provincia, paese } = req.body;
+  let { id, indirizzo_id, societa_id, tipo_sede_id, is_legal_original, via, numero_civico, cap, comune, provincia, paese, force_legal_seat, old_sede_action, new_type_for_old_sede } = req.body;
 
   if (!id || !societa_id || !tipo_sede_id) {
     return res.status(400).json({ error: "ID Sede, Società e Tipo Sede sono obbligatori." });
@@ -16,7 +16,20 @@ router.post('/anagrafica/gestione-sedi/edit', async (req, res) => {
     const catSedeLegale = await pb.collection('categorie').getFirstListItem('gruppo="SEDE" && chiave="LEG"');
     const isNowLegal = tipo_sede_id === catSedeLegale.id;
 
-    // 1. Aggiorna sempre l'indirizzo
+    // --- CONFLICT CHECK ---
+    if (isNowLegal && !wasLegal) { // Only check when transitioning TO legal
+        const societa = await pb.collection('societa').getOne(societa_id);
+        if (societa.sede_legale && force_legal_seat !== 'true') {
+            return res.status(409).json({
+                conflict: true,
+                message: "Esiste già una Sede Legale registrata. Proseguendo, la vecchia sede legale perderà il suo stato attuale.",
+                old_sede_legale_id: societa.sede_legale
+            });
+        }
+    }
+
+    // --- MAIN EXECUTION ---
+    // 1. Update the address record itself. This is always done.
     const indirizzoData = { 
       via: (via || '').trim(), 
       numero_civico: (numero_civico || '').trim(), 
@@ -37,10 +50,25 @@ router.post('/anagrafica/gestione-sedi/edit', async (req, res) => {
       // CASO 2: Operativa -> Operativa (modifica categoria sede)
       await pb.collection('sedi').update(id, { categorie: [tipo_sede_id] });
     } else if (!wasLegal && isNowLegal) {
-      // CASO 3: Operativa -> Legale
-      // Aggiorna la società con il nuovo indirizzo di sede legale
+      // CASO 3: Operativa -> Legale.
+      // First, handle the *old* legal seat if there was a conflict.
+      if (force_legal_seat === 'true') {
+          const societa = await pb.collection('societa').getOne(societa_id);
+          const oldIndirizzoId = societa.sede_legale;
+          if (oldIndirizzoId) {
+              if (old_sede_action === 'reclassify' && new_type_for_old_sede) {
+                  await pb.collection('sedi').create({
+                      societa: societa_id,
+                      indirizzo: oldIndirizzoId,
+                      categorie: [new_type_for_old_sede]
+                  });
+              }
+          }
+      }
+      // Now, perform the promotion.
+      // Update the societa to point to the new legal seat address.
       await pb.collection('societa').update(societa_id, { 'sede_legale': currentIndirizzoId });
-      // Elimina il vecchio record dalla tabella 'sedi'
+      // Delete the original 'sedi' record, as it's now represented in 'societa'.
       await pb.collection('sedi').delete(id);
     } else if (wasLegal && !isNowLegal) {
       // CASO 4: Legale -> Operativa
