@@ -26,7 +26,7 @@ async function verifyAddress(via, civico, cap, comune, provincia, paese) {
 
     ### **3. Provincia**
 
-    * La Provincia deve essere indicata **per esteso** (non sigle).
+    * La Provincia deve essere indicata **con sigla ISO2**.
     * In caso contrario → Segnala errore bloccante.
 
     ### **4. CAP - Comune - Provincia - Paese**
@@ -82,7 +82,7 @@ async function verifyAddress(via, civico, cap, comune, provincia, paese) {
 
     ## **6. Civico**
 
-    * Il civico deve essere **numerico** oppure **vuoto**.
+    * Il civico deve essere **numerico** oppure **SNC**.
     * Se non è numerico → Segnala errore bloccante.
 
     🚫 È vietato verificare la coerenza geografica del civico.
@@ -100,9 +100,9 @@ async function verifyAddress(via, civico, cap, comune, provincia, paese) {
     - Output: Restituisci sempre e solo il testo finale. Non includere metadati di grounding o commenti tecnici nel corpo della risposta.
 
     Contenuto della Risposta:
-    - Esito Generale: Indica chiaramente se il controllo complessivo è superato o fallito.
-    - Dettaglio Controlli: Elenca tutti i singoli controlli effettuati, specificando per ognuno se è "Superato" o "Non Superato".
-    - Errori e Warning: In caso di esito negativo o avvisi, fornisci una spiegazione estremamente sintetica della causa.
+    - Esito Generale: Indica chiaramente se il controllo complessivo è "Superato o "Non superato, usando obbligatoriamente il formato "Esito generale: Superato/Non Superato" e aggiungendo una riga vuota.
+    - Dettaglio Controlli: Elenca tutti i singoli controlli effettuati, specificando per ognuno se è "Superato" o "Non superato".
+    - Errori: In caso di esito negativo, fornisci una spiegazione estremamente sintetica della causa.
   `;
 
   const response = await ai.models.generateContent({

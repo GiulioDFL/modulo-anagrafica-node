@@ -30,11 +30,13 @@ router.post('/anagrafica/gestione-sedi/edit', async (req, res) => {
 
     // --- MAIN EXECUTION ---
     // 1. Update the address record itself. This is always done.
+    const toTitleCase = (str) => (str || '').trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+
     const indirizzoData = { 
-      via: (via || '').trim(), 
-      numero_civico: (numero_civico || '').trim(), 
+      via: toTitleCase(via), 
+      numero_civico: (numero_civico || '').trim().toUpperCase(), 
       cap: (cap || '').trim(), 
-      comune: (comune || '').trim().toUpperCase(), 
+      comune: toTitleCase(comune), 
       provincia: (provincia || '').trim().toUpperCase(), 
       paese: (paese || '').trim().toUpperCase()
     };

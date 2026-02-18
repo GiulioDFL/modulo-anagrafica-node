@@ -11,10 +11,12 @@ router.post('/anagrafica/gestione-sedi/add', async (req, res) => {
   }
 
   // Formattazione
-  via = (via || '').trim();
-  numero_civico = (numero_civico || '').trim();
+  const toTitleCase = (str) => (str || '').trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+
+  via = toTitleCase(via);
+  numero_civico = (numero_civico || '').trim().toUpperCase();
   cap = (cap || '').trim();
-  comune = (comune || '').trim().toUpperCase();
+  comune = toTitleCase(comune);
   provincia = (provincia || '').trim().toUpperCase();
   paese = (paese || '').trim().toUpperCase();
 

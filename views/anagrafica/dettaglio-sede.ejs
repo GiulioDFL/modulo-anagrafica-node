@@ -127,6 +127,26 @@
         </div>
     </dialog>
 
+    <!-- Modal Esito Verifica AI -->
+    <dialog id="aiResultModal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg">Esito Verifica Indirizzo</h3>
+
+            <div class="divider text-sm mt-4">Dati Inseriti</div>
+            <div id="userInputData" class="text-sm p-3 bg-base-200 rounded-lg font-mono break-words"></div>
+
+            <div class="divider text-sm">Risultato Verifica</div>
+            <div id="aiResultContent" class="py-4 px-4 rounded-lg whitespace-pre-wrap border text-sm"></div>
+
+            <div class="modal-action">
+                <form method="dialog">
+                    <button class="btn btn-ghost" onclick="setButtonLoading(false)">Annulla</button>
+                </form>
+                <button type="button" class="btn btn-success text-white" id="btnAiConfirm">Conferma e Salva</button>
+            </div>
+        </div>
+    </dialog>
+
     <script>
         const id = "<%= id %>";
         const isNew = id === 'nuova';
@@ -139,7 +159,7 @@
             if (isLoading) {
                 saveButton.disabled = true;
                 saveButton.innerHTML = `
-                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span class="loading loading-spinner loading-sm"></span>
                     ${text}
                 `;
             } else {
@@ -174,6 +194,23 @@
 
             // Re-submit with force options
             await submitData(forceOptions);
+        });
+
+        // Gestione pulsante "Conferma" del modale esito AI
+        document.getElementById('btnAiConfirm').addEventListener('click', async () => {
+            const aiResultModal = document.getElementById('aiResultModal');
+            const status = aiResultModal.dataset.verificationStatus;
+
+            if (status === 'failed') {
+                const confirmed = confirm("La verifica dell'indirizzo non è stata superata. Sei sicuro di voler salvare comunque?");
+                if (!confirmed) {
+                    return; // L'utente ha annullato, non procedere
+                }
+            }
+
+            // Se la verifica è superata o l'utente ha confermato nonostante il fallimento
+            aiResultModal.close();
+            await submitData(); // Procede con il salvataggio effettivo
         });
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -285,14 +322,38 @@
                 if (!verifyRes.ok) throw new Error("Errore comunicazione API");
 
                 const result = await verifyRes.json();
+                const text = result.text || '';
 
-                const message = `ESITO VERIFICA AI:\n\n${result.text}\n\n--------------------------------\nVuoi confermare il salvataggio?`;
+                // Analisi esito per styling
+                const lowerText = text.toLowerCase();
+                const isSuccess = lowerText.includes("esito generale: superato");
+                const isFailure = lowerText.includes("esito generale: non superato");
+                
+                const aiResultModal = document.getElementById('aiResultModal');
+                const contentDiv = document.getElementById('aiResultContent');
+                const userInputDiv = document.getElementById('userInputData');
 
-                if (confirm(message)) {
-                    await submitData();
+                // Popola i dati inseriti dall'utente
+                const userInputString = `${payload.via || ''} ${payload.civico || ''}, ${payload.cap || ''} ${payload.comune || ''} (${payload.provincia || ''}) - ${payload.paese || ''}`.trim();
+                userInputDiv.innerText = userInputString;
+
+                // Popola il risultato dell'AI
+                contentDiv.innerText = text;
+                
+                // Reset classi e applica stile in base all'esito
+                contentDiv.className = 'py-4 px-4 rounded-lg whitespace-pre-wrap border text-sm';
+                if (isSuccess) {
+                    contentDiv.classList.add('bg-green-50', 'border-green-200', 'text-green-900');
+                } else if (isFailure) {
+                    contentDiv.classList.add('bg-red-50', 'border-red-200', 'text-red-900');
                 } else {
-                    setButtonLoading(false); // L'utente ha annullato, ripristina il pulsante
+                    contentDiv.classList.add('bg-base-200', 'border-base-300');
                 }
+
+                // Imposta lo stato della verifica per il pulsante di conferma
+                aiResultModal.dataset.verificationStatus = isFailure ? 'failed' : 'passed';
+
+                aiResultModal.showModal();
             } catch (error) {
                 console.error("Errore verifica indirizzo:", error);
                 setButtonLoading(false); // Ripristina il pulsante in caso di errore
