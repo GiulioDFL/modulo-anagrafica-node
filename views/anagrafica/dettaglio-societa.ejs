@@ -152,10 +152,7 @@
             e.preventDefault();
 
             saveButton.disabled = true;
-            saveButton.innerHTML = `
-                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                Salvataggio...
-            `;
+            saveButton.innerHTML = `<span class="loading loading-spinner loading-sm"></span> Salvataggio...`;
 
             // Serializza i contatti nel campo hidden
             document.getElementById('contatti_json').value = JSON.stringify(contactsData);
@@ -167,20 +164,33 @@
                 body: formData,
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'}
             })
-            .then(res => res.json())
+            .then(async res => {
+                // Se la risposta non è OK, gestisci l'errore
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({})); // Prova a leggere il JSON, altrimenti oggetto vuoto
+                    
+                    // Altri errori (es. 400 per validazione, 500 per errori server)
+                    const errorMessage = errorData.error || errorData.message || `Si è verificato un errore (HTTP ${res.status}).`;
+                    alert(`Errore: ${errorMessage}`);
+                    
+                    // Lancia un errore per interrompere la catena .then() e andare al .catch()
+                    throw new Error(errorData.message || 'Errore server');
+                }
+                // Se la risposta è OK, procedi
+                return res.json();
+            })
             .then(data => {
-                if (data.error) {
-                    alert("Errore: " + data.error);
-                } else {
-                    alert(data.message);
-                    if (isNew && data.id) {
-                        window.location.href = `/anagrafica/dettaglio-societa/${data.id}`;
-                    }
+                // Questa parte viene eseguita solo in caso di successo (res.ok)
+                alert(data.message);
+                if (isNew && data.id) {
+                    // Reindirizza alla pagina di modifica dopo la creazione
+                    window.location.href = `/anagrafica/dettaglio-societa/${data.id}`;
                 }
             })
             .catch(err => {
-                console.error('Errore salvataggio:', err);
-                alert('Si è verificato un errore imprevisto durante il salvataggio.');
+                // Il catch serve principalmente per loggare l'errore in console.
+                // L'alert all'utente è già stato gestito nel blocco .then() che controlla res.ok
+                console.error('Errore durante il salvataggio:', err.message);
             })
             .finally(() => {
                 saveButton.disabled = false;

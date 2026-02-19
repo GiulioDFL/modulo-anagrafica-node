@@ -765,19 +765,6 @@
     },
     {
       "cascadeDelete": false,
-      "collectionId": "pbc_69257546",
-      "hidden": false,
-      "id": "relation1107314126",
-      "maxSelect": 1,
-      "minSelect": 0,
-      "name": "sede_legale",
-      "presentable": false,
-      "required": false,
-      "system": false,
-      "type": "relation"
-    },
-    {
-      "cascadeDelete": false,
       "collectionId": "pbc_2060577901",
       "hidden": false,
       "id": "relation1232983604",
@@ -825,7 +812,7 @@
   ],
   "indexes": [],
   "created": "2026-02-11 14:37:23.873Z",
-  "updated": "2026-02-11 16:28:20.547Z",
+  "updated": "2026-02-19 22:18:43.318Z",
   "system": false
 }
 ----------------------------------------
