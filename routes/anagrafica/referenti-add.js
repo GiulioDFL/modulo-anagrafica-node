@@ -4,7 +4,7 @@ const getPb = require('../../pocketbase-client');
 
 // POST /anagrafica/gestione-referenti/add
 router.post('/anagrafica/gestione-referenti/add', async (req, res) => {
-  let { societa_id, sede_id, ufficio_id, persona_id, cva_tipo_ruolo_id, nome, cognome } = req.body;
+  let { societa_id, sede_id, ufficio_id, persona_id, cva_tipo_ruolo_id, nome, cognome, contatti_json } = req.body;
 
   const ruoli = Array.isArray(cva_tipo_ruolo_id) ? cva_tipo_ruolo_id : (cva_tipo_ruolo_id ? [cva_tipo_ruolo_id] : []);
 
@@ -29,6 +29,33 @@ router.post('/anagrafica/gestione-referenti/add', async (req, res) => {
       }
     }
 
+    // Gestione Contatti: Processa il JSON ricevuto dal frontend
+    let listaContatti = [];
+    if (contatti_json) {
+        try {
+            const contactsInput = JSON.parse(contatti_json);
+            for (const c of contactsInput) {
+                let contactId = c.id;
+                const contactData = { tipo: c.tipo, valore: c.valore };
+                
+                if (contactId) {
+                    try { await pb.collection('contatti').update(contactId, contactData); } 
+                    catch (e) { try { const ex = await pb.collection('contatti').getFirstListItem(`valore="${c.valore}"`); contactId = ex.id; } catch (ex) {} }
+                } else {
+                    try { 
+                        const newC = await pb.collection('contatti').create(contactData); 
+                        contactId = newC.id; 
+                    } catch (e) {
+                        try { const ex = await pb.collection('contatti').getFirstListItem(`valore="${c.valore}"`); contactId = ex.id; } catch (ex) {}
+                    }
+                }
+                if (contactId) listaContatti.push(contactId);
+            }
+        } catch (e) {
+            console.error("Errore processamento contatti:", e);
+        }
+    }
+
     // 2. Creazione Referente
     // La collection 'referenti' ha campi relazione diretti per societa, sede, ufficio, persona e categorie (ruoli)
     const referenteData = {
@@ -36,7 +63,8 @@ router.post('/anagrafica/gestione-referenti/add', async (req, res) => {
       sede: sede_id || null,
       ufficio: ufficio_id || null,
       persona: persona_id,
-      categorie: ruoli
+      categorie: ruoli,
+      contatti: [...new Set(listaContatti)]
     };
 
     const record = await pb.collection('referenti').create(referenteData);

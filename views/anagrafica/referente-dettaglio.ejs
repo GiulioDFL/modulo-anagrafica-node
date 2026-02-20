@@ -6,6 +6,7 @@
     <title>Dettaglio Referente</title>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body class="bg-base-200 min-h-screen py-8">
     <div class="container mx-auto p-4 max-w-3xl">
@@ -42,6 +43,51 @@
                         </div>
                     </div>
 
+                    <!-- Gestione Contatti -->
+                    <div class="form-control">
+                        <label class="label font-semibold"><span class="label-text">Contatti</span></label>
+                        <div class="bg-base-100 border border-base-300 rounded-xl overflow-hidden shadow-sm">
+                            <table class="table table-sm w-full">
+                                <thead class="bg-base-200/50 text-base-content/70">
+                                    <tr>
+                                        <th class="w-[180px]">Tipo</th>
+                                        <th>Valore</th>
+                                        <th class="w-14 text-center">Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="contactsList" class="divide-y divide-base-200">
+                                    <!-- Righe contatti generate via JS -->
+                                </tbody>
+                                <tfoot class="bg-base-50 border-t border-base-200">
+                                    <tr>
+                                        <td class="p-2">
+                                            <div class="join w-full">
+                                                <div class="join-item flex items-center justify-center bg-base-200 px-3 border border-base-300 border-r-0 rounded-l-lg">
+                                                    <i id="newContactIcon" class="bi bi-envelope text-lg opacity-70"></i>
+                                                </div>
+                                                <select id="newContactType" class="select select-bordered select-sm join-item w-full focus:outline-none" onchange="updateNewContactIcon(this.value)">
+                                                    <option value="email">Email</option>
+                                                    <option value="pec">PEC</option>
+                                                    <option value="mobile">Mobile</option>
+                                                    <option value="phone">Telefono</option>
+                                                </select>
+                                            </div>
+                                        </td>
+                                        <td class="p-2">
+                                            <input type="text" id="newContactValue" class="input input-bordered input-sm w-full" placeholder="Inserisci contatto..." onkeypress="handleEnter(event)">
+                                        </td>
+                                        <td class="p-2 text-center">
+                                            <button type="button" class="btn btn-sm btn-square btn-primary text-white shadow-sm" onclick="addNewContact()" title="Aggiungi">
+                                                <i class="bi bi-plus-lg text-lg font-bold"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        <input type="hidden" name="contatti_json" id="contatti_json">
+                    </div>
+
                     <!-- Ruolo -->
                     <!-- Componente Multi-Tag per Ruoli -->
                     <div id="ruoliContainer" class="form-control">
@@ -60,27 +106,26 @@
         const isNew = id === 'nuova';
         const form = document.getElementById('referenteForm');
         const saveButton = document.getElementById('saveButton');
+        let ruoliControl = null;
+        let contactsData = [];
         
         // Parametri iniziali da EJS
         const urlParams = new URLSearchParams(window.location.search);
-        const initialSedeId = "<%= sede_id || '' %>" || urlParams.get('sede_id') || '';
-        const initialUfficioId = "<%= ufficio_id || '' %>" || urlParams.get('ufficio_id') || '';
-        const initialSocietaId = "<%= societa_id || '' %>" || urlParams.get('societa_id') || '';
+        const initialSedeId = "<%= typeof sede_id !== 'undefined' ? sede_id : '' %>" || urlParams.get('sede_id') || '';
+        const initialUfficioId = "<%= typeof ufficio_id !== 'undefined' ? ufficio_id : '' %>" || urlParams.get('ufficio_id') || '';
+        const initialSocietaId = "<%= typeof societa_id !== 'undefined' ? societa_id : '' %>" || urlParams.get('societa_id') || '';
 
         document.addEventListener('DOMContentLoaded', async () => {
             let societaId = initialSocietaId;
             if (isNew) {
-                const societaInput = document.getElementById('societa_id');
-                if (societaInput && !societaInput.value && initialSocietaId) societaInput.value = initialSocietaId;
-                societaId = societaInput ? societaInput.value : initialSocietaId;
+                // Se siamo in creazione, l'input hidden societa_id esiste ed è popolato da EJS
+                societaId = document.getElementById('societa_id').value;
             }
             
             // Inizializzazione Componente Multi-Tag
-            await initMultiTag({
+            ruoliControl = await initMultiTag({
                 containerId: 'ruoliContainer',
-                group: 'TIPI_RUOLO', // o 'RUOLI' a seconda del DB, uso TIPI_RUOLO come da prompt
-                entityId: isNew ? null : id,
-                entityType: 'referenti',
+                group: 'RUOLO',
                 inputName: 'cva_tipo_ruolo_id',
                 label: 'Ruolo'
             });
@@ -156,6 +201,20 @@
                         // Impostiamo l'ID persona per l'update
                         document.getElementById('persona_id').value = item.persona_id || '';
 
+                        // Caricamento contatti esistenti
+                        if (item.expand && item.expand.contatti) {
+                            contactsData = Array.isArray(item.expand.contatti) ? item.expand.contatti : [item.expand.contatti];
+                            contactsData = contactsData.map(c => ({ id: c.id, tipo: c.tipo, valore: c.valore }));
+                            renderContacts();
+                        }
+
+                        // Popolamento Ruoli
+                        if (item.expand && item.expand.categorie && ruoliControl) {
+                            const cats = Array.isArray(item.expand.categorie) ? item.expand.categorie : [item.expand.categorie];
+                            const catIds = cats.map(c => c.id);
+                            ruoliControl.setSelection(catIds);
+                        }
+
                         // Context Logic for Edit
                         const items = [
                             { label: 'Società', value: item.ragione_sociale, url: `/anagrafica/dettaglio-societa/${item.societa_id}` }
@@ -184,12 +243,15 @@
             saveButton.disabled = true;
             saveButton.innerHTML = 'Salvataggio...';
 
-            const formData = new URLSearchParams(new FormData(this));
+            // Serializza i contatti nel campo hidden
+            document.getElementById('contatti_json').value = JSON.stringify(contactsData);
+
+            const formData = new URLSearchParams(new FormData(this)); // Usa URLSearchParams per x-www-form-urlencoded
             
             fetch(this.action, {
                 method: 'POST',
-                body: formData,
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                body: formData, // Invia come form data standard
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' } // Importante per il body parser standard
             })
             .then(res => res.json())
             .then(data => {
@@ -221,14 +283,103 @@
             document.getElementById('contextInfo').classList.remove('hidden');
         }
 
+        // --- Gestione Contatti (Logica identica a Sedi/Società/Uffici) ---
+        function renderContacts() {
+            const tbody = document.getElementById('contactsList');
+            tbody.innerHTML = '';
+            
+            if (contactsData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-sm text-gray-400 py-4 italic">Nessun contatto inserito</td></tr>';
+                return;
+            }
+            
+            contactsData.forEach((contact, index) => {
+                let icon = 'bi-chat-text';
+                let iconColor = 'text-gray-500';
+
+                if(contact.tipo === 'email') { icon = 'bi-envelope'; iconColor = 'text-blue-500'; }
+                if(contact.tipo === 'pec') { icon = 'bi-patch-check-fill'; iconColor = 'text-purple-500'; }
+                if(contact.tipo === 'mobile') { icon = 'bi-phone'; iconColor = 'text-green-500'; }
+                if(contact.tipo === 'phone') { icon = 'bi-telephone'; iconColor = 'text-orange-500'; }
+
+                const tr = document.createElement('tr');
+                tr.className = 'group hover:bg-base-50 transition-colors duration-200';
+                tr.innerHTML = `
+                    <td class="align-middle">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-base-200 flex items-center justify-center shrink-0">
+                                <i class="bi ${icon} ${iconColor} text-lg"></i>
+                            </div>
+                            <select class="select select-ghost select-xs w-full max-w-[120px] font-medium opacity-80 hover:opacity-100 focus:opacity-100 focus:bg-base-100" onchange="updateContact(${index}, 'tipo', this.value); renderContacts();">
+                                <option value="email" ${contact.tipo === 'email' ? 'selected' : ''}>Email</option>
+                                <option value="pec" ${contact.tipo === 'pec' ? 'selected' : ''}>PEC</option>
+                                <option value="mobile" ${contact.tipo === 'mobile' ? 'selected' : ''}>Mobile</option>
+                                <option value="phone" ${contact.tipo === 'phone' ? 'selected' : ''}>Telefono</option>
+                            </select>
+                        </div>
+                    </td>
+                    <td class="align-middle">
+                        <input type="text" class="input input-ghost input-sm w-full focus:bg-base-100 focus:input-bordered transition-all" value="${contact.valore}" onchange="updateContact(${index}, 'valore', this.value)" placeholder="Valore contatto...">
+                    </td>
+                    <td class="text-center align-middle">
+                        <button type="button" class="btn btn-sm btn-ghost btn-circle text-error opacity-0 group-hover:opacity-100 transition-opacity" onclick="removeContact(${index})" title="Rimuovi">
+                            <i class="bi bi-trash3-fill"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateNewContactIcon(type) {
+            const iconEl = document.getElementById('newContactIcon');
+            let icon = 'bi-chat-text';
+            if(type === 'email') icon = 'bi-envelope';
+            if(type === 'pec') icon = 'bi-patch-check-fill';
+            if(type === 'mobile') icon = 'bi-phone';
+            if(type === 'phone') icon = 'bi-telephone';
+            iconEl.className = `bi ${icon} text-lg opacity-70`;
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addNewContact();
+            }
+        }
+
+        function addNewContact() {
+            const typeSelect = document.getElementById('newContactType');
+            const valueInput = document.getElementById('newContactValue');
+            const tipo = typeSelect.value;
+            const valore = valueInput.value.trim();
+
+            if (!valore) return;
+
+            contactsData.push({ tipo, valore });
+            renderContacts();
+            
+            valueInput.value = ''; 
+            valueInput.focus();
+        }
+
+        function updateContact(index, field, value) {
+            contactsData[index][field] = value;
+        }
+
+        function removeContact(index) {
+            contactsData.splice(index, 1);
+            renderContacts();
+        }
+
         // Componente Multi-Tag Standardizzato
         async function initMultiTag(config) {
-            const { containerId, group, entityId, entityType, inputName, label } = config;
+            const { containerId, group, inputName, label } = config;
             const container = document.getElementById(containerId);
             
             // UI: Dropdown con Checkboxes per selezione multipla
             container.innerHTML = `
-                <label class="label"><span class="label-text">${label} <span class="text-error">*</span></span></label>
+                <label class="label"><span class="label-text">${label}</span></label>
                 <div class="dropdown w-full">
                     <div tabindex="0" role="button" class="input input-bordered w-full flex items-center justify-between h-auto min-h-[3rem] py-2" id="dropdown_btn_${inputName}">
                         <div id="selected_tags_${inputName}" class="flex flex-wrap gap-1">
@@ -284,15 +435,6 @@
                 optionsContainer.innerHTML = '<div class="text-error p-2">Errore caricamento opzioni</div>';
             }
 
-            // Carica Tag Esistenti
-            if (entityId) {
-                try {
-                    const res = await fetch(`/api/attributes/${entityType}/${entityId}/tags?group=${group}`);
-                    const tags = await res.json();
-                    tags.forEach(t => selectedIds.add(String(t.id)));
-                } catch(e) { console.error('Errore caricamento tag', e); }
-            }
-
             // Sincronizza UI iniziale
             syncUI();
 
@@ -340,6 +482,14 @@
                     });
                 }
             }
+
+            // API pubblica del componente
+            return {
+                setSelection: (ids) => {
+                    selectedIds = new Set(ids.map(String));
+                    syncUI();
+                }
+            };
         }
     </script>
 </body>
