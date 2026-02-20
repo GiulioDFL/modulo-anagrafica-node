@@ -92,41 +92,6 @@
         </div>
     </dialog>
 
-    <!-- Modal Conflitto Sede Legale -->
-    <dialog id="legalSeatConflictModal" class="modal">
-        <div class="modal-box">
-            <h3 class="font-bold text-lg text-error">Conflitto Sede Legale</h3>
-            <p class="py-4" id="conflictMessage">Esiste già una Sede Legale registrata. Proseguendo, la vecchia sede legale perderà il suo stato attuale.</p>
-            
-            <div class="divider">Azione sulla vecchia Sede Legale</div>
-            
-            <div class="form-control">
-                <label class="label cursor-pointer">
-                    <span class="label-text">Rimuovi lo stato di "Sede Legale"</span>
-                    <input type="radio" name="old_sede_action_radio" class="radio checked:bg-neutral-500" value="delete" checked />
-                </label>
-            </div>
-            <div class="form-control">
-                <label class="label cursor-pointer">
-                    <span class="label-text">Declassa a nuova tipologia</span>
-                    <input type="radio" name="old_sede_action_radio" class="radio checked:bg-primary" value="reclassify" />
-                </label>
-            </div>
-
-            <div id="reclassifyOptions" class="form-control mt-2 hidden">
-                <label class="label"><span class="label-text">Seleziona nuova tipologia</span></label>
-                <select id="newTypeForOldSedeSelect" class="select select-bordered w-full">
-                    <option>Caricamento...</option>
-                </select>
-            </div>
-
-            <div class="modal-action">
-                <button class="btn btn-ghost" onclick="legalSeatConflictModal.close()">Annulla</button>
-                <button type="button" class="btn btn-primary" id="btnConflictConfirm">Conferma e Salva</button>
-            </div>
-        </div>
-    </dialog>
-
     <!-- Modal Esito Verifica AI -->
     <dialog id="aiResultModal" class="modal">
         <div class="modal-box">
@@ -172,28 +137,6 @@
         document.getElementById('btnForceSave').addEventListener('click', async () => {
             serviceErrorModal.close();
             await submitData();
-        });
-
-        // Gestione pulsante "Conferma" del modale di conflitto
-        document.getElementById('btnConflictConfirm').addEventListener('click', async () => {
-            const action = document.querySelector('input[name="old_sede_action_radio"]:checked').value;
-            const newTypeSelect = document.getElementById('newTypeForOldSedeSelect');
-            let newType = newTypeSelect.value;
-
-            if (action === 'reclassify' && !newType) {
-                alert('Per declassare, è necessario selezionare una nuova tipologia.');
-                return;
-            }
-
-            legalSeatConflictModal.close();
-
-            const forceOptions = {
-                action: action,
-                newType: newType
-            };
-
-            // Re-submit with force options
-            await submitData(forceOptions);
         });
 
         // Gestione pulsante "Conferma" del modale esito AI
@@ -361,31 +304,17 @@
             }
         });
 
-        async function submitData(forceOptions = null) {
+        async function submitData() {
             setButtonLoading(true, 'Salvataggio...');
-            let shouldResetButton = true;
             try {
                 const formData = new FormData(form);
                 const params = new URLSearchParams(formData);
-
-                if (forceOptions) {
-                    params.append('force_legal_seat', 'true');
-                    params.append('old_sede_action', forceOptions.action);
-                    if (forceOptions.action === 'reclassify') {
-                        params.append('new_type_for_old_sede', forceOptions.newType);
-                    }
-                }
 
                 const res = await fetch(form.action, {
                     method: 'POST',
                     body: params,
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
                 });
-
-                if (res.status === 409) {
-                    await showConflictModal();
-                    return; // Stop execution, user needs to interact with modal
-                }
 
                 const data = await res.json();
 
@@ -394,18 +323,24 @@
                 } else {
                     alert(data.message);
                     if (isNew) {
-                        shouldResetButton = false; // Non ripristinare se la finestra si chiude
-                        window.close();
+                        // Reindirizza alla pagina di dettaglio della nuova sede
+                        if (data.id) {
+                            window.location.href = `/anagrafica/dettaglio-sede/${data.id}`;
+                        } else {
+                            window.close();
+                        }
+                    } else {
+                        // Ricarica la pagina per mostrare i dati aggiornati
+                        window.location.reload();
                     }
                 }
             } catch (error) {
                 console.error("Errore nel salvataggio:", error);
                 alert("Si è verificato un errore di comunicazione durante il salvataggio.");
             } finally {
-                if (shouldResetButton) {
-                    // Only reset button if the conflict modal is not open
-                    if (!legalSeatConflictModal.open)
-                        setButtonLoading(false);
+                // Se non stiamo reindirizzando (es. errore o reload imminente), ripristina il bottone
+                if (!isNew) {
+                    setButtonLoading(false);
                 }
             }
         }
@@ -423,37 +358,6 @@
                 list.appendChild(div);
             });
             document.getElementById('contextInfo').classList.remove('hidden');
-        }
-
-        async function showConflictModal() {
-            const legalSeatConflictModal = document.getElementById('legalSeatConflictModal');
-            const reclassifyDiv = document.getElementById('reclassifyOptions');
-            const newTypeSelect = document.getElementById('newTypeForOldSedeSelect');
-            const radios = document.querySelectorAll('input[name="old_sede_action_radio"]');
-
-            radios.forEach(radio => {
-                radio.onchange = (e) => {
-                    reclassifyDiv.classList.toggle('hidden', e.target.value !== 'reclassify');
-                };
-            });
-
-            newTypeSelect.innerHTML = '<option value="">Caricamento...</option>';
-            try {
-                const res = await fetch('/api/settings/categorie?gruppo=SEDE');
-                const tipi = await res.json();
-                const catSedeLegale = tipi.find(t => t.chiave === 'LEG');
-                
-                newTypeSelect.innerHTML = '<option value="">Seleziona nuova tipologia...</option>';
-                tipi.forEach(tipo => {
-                    if (tipo.id !== catSedeLegale?.id) {
-                        newTypeSelect.innerHTML += `<option value="${tipo.id}">${tipo.valore}</option>`;
-                    }
-                });
-            } catch (e) {
-                newTypeSelect.innerHTML = '<option value="">Errore caricamento</option>';
-            }
-
-            legalSeatConflictModal.showModal();
         }
     </script>
 </body>

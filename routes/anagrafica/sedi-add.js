@@ -43,9 +43,9 @@ router.post('/anagrafica/gestione-sedi/add', async (req, res) => {
 
     // Creazione record Sede (unificato per legale e operativa)
     const sedeData = { societa: societa_id, indirizzo: indirizzoRecord.id, categorie: [tipo_sede_id] };
-    await pb.collection('sedi').create(sedeData);
+    const record = await pb.collection('sedi').create(sedeData);
     
-    res.json({ success: true, message: "Sede inserita con successo." });
+    res.json({ success: true, message: "Sede inserita con successo.", id: record.id });
   } catch (err) {
     if (err.response && err.response.data) {
         const details = Object.values(err.response.data).map(v => v.message).join('. ');
