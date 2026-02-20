@@ -158,16 +158,17 @@
                     data.forEach(s => {
                         const option = document.createElement('option');
                         option.value = s.id;
-                        const partiIndirizzo = [
-                            s.via || s.indirizzo,
-                            s.numero_civico,
-                            s.cap,
-                            s.comune || s.citta,
-                            s.provincia,
-                            s.paese
-                        ];
-                        const indirizzoCompleto = partiIndirizzo.filter(p => p && String(p).trim() !== '').join(' ');
-                        const tipo = s.tipo_sede_desc || s.tipo_sede || 'Sede';
+                        
+                        const indirizzoData = s.expand?.indirizzo || {};
+                        const categorieData = s.expand?.categorie || [];
+
+                        const via = [indirizzoData.via, indirizzoData.numero_civico].filter(Boolean).join(' ');
+                        const loc = [indirizzoData.cap, indirizzoData.comune, indirizzoData.provincia ? `(${indirizzoData.provincia})` : ''].filter(Boolean).join(' ');
+                        const indirizzoCompleto = [via, loc].filter(Boolean).join(', ');
+
+                        const tipoSedeCat = categorieData.find(c => c.gruppo === 'SEDE');
+                        const tipo = tipoSedeCat?.valore || 'Sede';
+
                         option.textContent = `${indirizzoCompleto} - ${tipo}`;
                         select.appendChild(option);
                     });
@@ -223,7 +224,14 @@
                                 const ind = s.expand?.indirizzo || {};
                                 const via = [ind.via, ind.numero_civico].filter(Boolean).join(' ');
                                 const loc = [ind.cap, ind.comune, ind.provincia ? `(${ind.provincia})` : ''].filter(Boolean).join(' ');
-                                sedeLabel = [via, loc].filter(Boolean).join(', ') || sedeLabel;
+                               const indirizzoCompleto = [via, loc].filter(Boolean).join(', ');
+
+                               const categorieSede = s.expand?.categorie || [];
+                               const tipoSedeCat = categorieSede.find(c => c.gruppo === 'SEDE');
+                               const tipo = tipoSedeCat?.valore || 'Sede';
+
+                               sedeLabel = `${indirizzoCompleto} - ${tipo}`.trim();
+                               if (!indirizzoCompleto.trim()) sedeLabel = tipo;
                             }
                             contextItems.push({ label: 'Sede', value: sedeLabel, url: `/anagrafica/dettaglio-sede/${item.sede_id}` });
                         }

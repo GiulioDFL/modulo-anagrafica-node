@@ -79,7 +79,7 @@ router.get('/api/anagrafica/uffici', async (req, res) => {
     const records = await pb.collection('uffici').getFullList({
       filter: filterString,
       sort: '-created',
-      expand: 'categorie,contatti,sede,sede.indirizzo,societa',
+      expand: 'categorie,contatti,sede,sede.indirizzo,sede.categorie,societa',
     });
 
     res.json(records);
