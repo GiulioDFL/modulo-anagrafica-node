@@ -52,6 +52,10 @@ router.post('/anagrafica/gestione-societa/edit', async (req, res) => {
 
   try {
     const pb = await getPb();
+    
+    // Recupera i contatti attuali per gestire le eliminazioni
+    const currentSocieta = await pb.collection('societa').getOne(id);
+    const oldContacts = currentSocieta.contatti || [];
 
     // Gestione Contatti: Processa il JSON ricevuto dal frontend
     let listaContatti = [];
@@ -90,6 +94,14 @@ router.post('/anagrafica/gestione-societa/edit', async (req, res) => {
     data.contatti = [...new Set(listaContatti)]; // Rimuove duplicati
 
     await pb.collection('societa').update(id, data);
+    
+    // Elimina i contatti che sono stati rimossi dalla società
+    const removedContacts = oldContacts.filter(cid => !data.contatti.includes(cid));
+    for (const cid of removedContacts) {
+        try { await pb.collection('contatti').delete(cid); } 
+        catch (e) { console.warn(`Impossibile eliminare contatto orfano ${cid}:`, e.message); }
+    }
+
     res.json({ success: true, message: "Società aggiornata con successo" });
   } catch (err) {
     // Gestione errori dettagliata da PocketBase (es. validazione campi)
