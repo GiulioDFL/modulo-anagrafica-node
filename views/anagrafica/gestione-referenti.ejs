@@ -9,9 +9,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <style>
-        .actions-col { white-space: nowrap; width: 1%; }
-    </style>
 </head>
 <body class="bg-base-200 min-h-screen">
     <div class="container mx-auto p-4">
@@ -31,12 +28,18 @@
         <!-- Filtri -->
         <div class="card bg-base-100 shadow-xl mb-6">
             <div class="card-body p-6">
-                <form id="filterForm" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end" autocomplete="off">
-                    <div class="md:col-span-4">
-                        <label for="search" class="label py-0 pb-1"><span class="label-text">Cerca</span></label>
-                        <input type="text" class="input input-bordered input-sm w-full" id="search" name="search" placeholder="Nome, Cognome, Ruolo...">
+                <form id="filterForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end" autocomplete="off">
+                    <div class="form-control">
+                        <label class="label py-0 pb-1"><span class="label-text">Cerca</span></label>
+                        <input type="text" class="input input-bordered input-sm w-full" name="search" placeholder="Nome, ruolo, contatti...">
                     </div>
-                    <div class="md:col-span-8 flex justify-end gap-2 mt-2">
+                    <div class="form-control">
+                        <label class="label py-0 pb-1"><span class="label-text">Ruolo</span></label>
+                        <div id="ruoliContainer" class="flex flex-wrap gap-x-4 gap-y-2 pt-1">
+                            <!-- Checkboxes caricate via JS -->
+                        </div>
+                    </div>
+                    <div class="md:col-span-2 flex justify-end gap-2 mt-4 border-t pt-4">
                         <button type="button" class="btn btn-sm btn-ghost" onclick="resetFilters()">Reset</button>
                         <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-search"></i> Cerca</button>
                     </div>
@@ -44,54 +47,39 @@
             </div>
         </div>
 
-        <!-- Tabella -->
-        <div class="card bg-base-100 shadow-xl">
-            <div class="card-body p-0">
-                <div class="overflow-x-auto rounded-box">
-                    <table class="table table-zebra w-full">
-                        <thead class="bg-base-200 text-base-content uppercase text-xs font-bold">
-                            <tr>
-                                <th>Nominativo</th>
-                                <th>Ruoli</th>
-                                <th id="th-societa">Società</th>
-                                <th id="th-sede">Sede</th>
-                                <th id="th-ufficio">Ufficio</th>
-                                <th class="actions-col text-right pr-4">Azioni</th>
-                            </tr>
-                        </thead>
-                        <tbody id="referenti-table-body"></tbody>
-                    </table>
-                </div>
-            </div>
+        <!-- Header Risultati -->
+        <div class="flex justify-between items-center mb-4 px-1">
+            <div id="resultsCount" class="text-sm font-semibold opacity-70">In attesa di ricerca...</div>
+        </div>
+
+        <!-- Grid Risultati (Card) -->
+        <div id="referentiContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <!-- Contenuto caricato via AJAX -->
         </div>
     </div>
 
     <script>
-        const societaId = '<%= societa_id %>';
-        const sedeId = '<%= sede_id || "" %>';
-        const ufficioId = '<%= ufficio_id || "" %>';
-
-        document.addEventListener('DOMContentLoaded', loadReferenti);
+        document.addEventListener('DOMContentLoaded', () => {
+            loadRuoli();
+            loadReferenti();
+        });
 
         function loadReferenti() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const societaId = urlParams.get('societa_id') || '<%= societa_id %>';
+            const sedeId = urlParams.get('sede_id') || '<%= sede_id || "" %>';
+            const ufficioId = urlParams.get('ufficio_id') || '<%= ufficio_id || "" %>';
+
             const formData = new FormData(document.getElementById('filterForm'));
             const params = new URLSearchParams(formData);
             if (societaId) params.append('societa_id', societaId);
             if (sedeId) params.append('sede_id', sedeId);
             if (ufficioId) params.append('ufficio_id', ufficioId);
 
-            // Gestione visibilità colonne Contesto
-            const thSocieta = document.getElementById('th-societa');
-            if (thSocieta) {
-                thSocieta.style.display = (societaId || sedeId || ufficioId) ? 'none' : '';
-            }
-            const thSede = document.getElementById('th-sede');
-            if (thSede) {
-                thSede.style.display = (sedeId || ufficioId) ? 'none' : '';
-            }
-            const thUfficio = document.getElementById('th-ufficio');
-            if (thUfficio) {
-                thUfficio.style.display = ufficioId ? 'none' : '';
+            // Aggiorna il link "Nuovo Referente"
+            const newBtn = document.getElementById('btnAddReferente');
+            if (newBtn) {
+                newBtn.href = `/anagrafica/gestione-referenti/dettaglio?id=nuova&societa_id=${societaId}&sede_id=${sedeId}&ufficio_id=${ufficioId}`;
             }
 
             // Costruzione Titolo Breadcrumb
@@ -113,35 +101,26 @@
                             
                             if (dataSede && dataSede.length > 0) {
                                 const s = dataSede[0];
-                                const partiIndirizzo = [
-                                    s.via,
-                                    s.numero_civico,
-                                    s.cap,
-                                    s.comune,
-                                    s.provincia,
-                                    s.paese
-                                ];
-                                const indirizzoCompleto = partiIndirizzo.filter(p => p && String(p).trim() !== '').join(' ');
-                                const tipo = s.tipo_sede_desc || s.tipo_sede || 'Sede';
-                                hierarchyHtml += ` <i class="bi bi-chevron-right mx-1"></i> Sede: <a href="/anagrafica/dettaglio-sede/${s.id}" target="_blank" class="link link-hover font-bold">${indirizzoCompleto} (${tipo})</a>`;
+                                const indirizzoData = s.expand?.indirizzo || {};
+                                const via = [indirizzoData.via, indirizzoData.numero_civico].filter(Boolean).join(' ');
+                                const loc = [indirizzoData.cap, indirizzoData.comune, indirizzoData.provincia ? `(${indirizzoData.provincia})` : ''].filter(Boolean).join(' ');
+                                const indirizzoCompleto = [via, loc].filter(Boolean).join(', ');
+                                const tipo = s.expand?.categorie?.[0]?.valore || 'Sede';
+                                hierarchyHtml += ` <i class="bi bi-chevron-right mx-1"></i> Sede: <a href="/anagrafica/dettaglio-sede/${s.id}" target="_blank" class="link link-hover font-bold">${indirizzoCompleto} - ${tipo}</a>`;
                             }
 
                             if (u) {
-                                const tipi = (u.tipi_ufficio || '').split(',').filter(t => t.trim()).join(', ');
-                                let labelUfficio = u.nome_ufficio || '';
-                                if (tipi) {
-                                    labelUfficio = labelUfficio ? `${labelUfficio} (${tipi})` : tipi;
-                                }
-                                hierarchyHtml += ` <i class="bi bi-chevron-right mx-1"></i> Ufficio: <a href="/anagrafica/ufficio/dettaglio?id=${u.id}&societa_id=${u.societa_id}" target="_blank" class="link link-hover font-bold">${labelUfficio}</a>`;
+                                const categorieUfficio = u.expand?.categorie ? (Array.isArray(u.expand.categorie) ? u.expand.categorie : [u.expand.categorie]) : [];
+                                const nomeUfficio = categorieUfficio.map(c => c.valore).join(', ') || 'Ufficio';
+                                hierarchyHtml += ` <i class="bi bi-chevron-right mx-1"></i> Ufficio: <a href="/anagrafica/ufficio/dettaglio?id=${u.id}&societa_id=${u.societa_id}" target="_blank" class="link link-hover font-bold">${nomeUfficio}</a>`;
                             }
                             document.getElementById('hierarchyInfo').innerHTML = hierarchyHtml;
 
                             // Aggiorna il link "Nuovo Referente" con la sede dedotta dal contesto
-                            const btnAdd = document.getElementById('btnAddReferente');
-                            if (btnAdd && currentSedeId) {
-                                const url = new URL(btnAdd.href, window.location.origin);
+                            if (newBtn && currentSedeId) {
+                                const url = new URL(newBtn.href, window.location.origin);
                                 url.searchParams.set('sede_id', currentSedeId);
-                                btnAdd.href = url.toString();
+                                newBtn.href = url.toString();
                             }
                         }
                     });
@@ -151,87 +130,156 @@
             fetch(`/api/anagrafica/referenti?${params.toString()}`)
                 .then(res => res.json())
                 .then(data => {
-                    const tbody = document.getElementById('referenti-table-body');
-                    tbody.innerHTML = '';
+                    const container = document.getElementById('referentiContainer');
+                    const countLabel = document.getElementById('resultsCount');
+                    container.innerHTML = '';
                     
                     if (data.error) {
-                        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-error">Errore: ${data.error}</td></tr>`;
+                        container.innerHTML = `<div class="col-span-full text-center py-10 text-error bg-base-100 rounded-box shadow">Errore: ${data.error}</div>`;
+                        countLabel.innerText = 'Errore';
                         return;
                     }
                     if (data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 opacity-60">Nessun referente trovato.</td></tr>';
+                        container.innerHTML = '<div class="col-span-full text-center py-10 opacity-60 bg-base-100 rounded-box shadow">Nessun referente trovato con i filtri selezionati.</div>';
+                        countLabel.innerText = '0 risultati trovati';
                         return;
                     }
 
+                    countLabel.innerText = `${data.length} risultati trovati`;
+
                     data.forEach(r => {
-                        // Deduplica i tag (fix per duplicati generati da join SQL multiple su attributi sede/ufficio)
-                        const tags = (r.ruolo || '').split(',').map(t => t.trim()).filter(t => t);
-                        const uniqueTags = [...new Set(tags)];
+                        const persona = r.expand?.persona || {};
+                        const categorie = r.expand?.categorie ? (Array.isArray(r.expand.categorie) ? r.expand.categorie : [r.expand.categorie]) : [];
+                        const contatti = r.expand?.contatti ? (Array.isArray(r.expand.contatti) ? r.expand.contatti : [r.expand.contatti]) : [];
+                        
+                        // Costruzione Contesto (Dove lavora il referente)
+                        let contextLabel = '';
+                        let contextIcon = 'bi-building';
+                        
+                        if (r.expand?.ufficio) {
+                            const u = r.expand.ufficio;
+                            const cats = u.expand?.categorie ? (Array.isArray(u.expand.categorie) ? u.expand.categorie : [u.expand.categorie]) : [];
+                            const nomeUff = cats.map(c => c.valore).join(', ') || 'Ufficio';
+                            
+                            // Aggiungi info sede se disponibile
+                            let sedeInfo = '';
+                            if (r.expand?.sede) {
+                                const s = r.expand.sede;
+                                const ind = s.expand?.indirizzo || {};
+                                const via = [ind.via, ind.numero_civico].filter(Boolean).join(' ');
+                                const loc = [ind.comune, ind.provincia ? `(${ind.provincia})` : ''].filter(Boolean).join(' ');
+                                sedeInfo = [via, loc].filter(Boolean).join(', ');
+                            }
+                            
+                            contextLabel = `${nomeUff}${sedeInfo ? ` - ${sedeInfo}` : ''}`;
+                            contextIcon = 'bi-door-open';
+                        } else if (r.expand?.sede) {
+                            const s = r.expand.sede;
+                            const ind = s.expand?.indirizzo || {};
+                            const via = [ind.via, ind.numero_civico].filter(Boolean).join(' ');
+                            const loc = [ind.cap, ind.comune, ind.provincia ? `(${ind.provincia})` : ''].filter(Boolean).join(' ');
+                            const tipo = s.expand?.categorie?.[0]?.valore || 'Sede';
+                            contextLabel = `${[via, loc].filter(Boolean).join(', ')} - ${tipo}`;
+                            contextIcon = 'bi-geo-alt';
+                        } else if (r.expand?.societa) {
+                            contextLabel = r.expand.societa.ragione_sociale;
+                        } else {
+                            contextLabel = 'Nessuna assegnazione';
+                        }
 
-                        const ruoliHtml = uniqueTags
-                            .map(tag => `<span class="badge badge-ghost bg-blue-50 text-blue-700 border-blue-200 h-auto py-1 px-2 rounded-lg text-xs">${tag}</span>`)
-                            .join('');
-
-                        tbody.innerHTML += `
-                            <tr class="hover">
-                                <td class="font-bold">${r.cognome} ${r.nome}</td>
-                                <td><div class="flex flex-wrap gap-1">${ruoliHtml || '-'}</div></td>
-                                ${(societaId || sedeId || ufficioId) ? '' : `<td>${r.societa_id ? `<a href="/anagrafica/dettaglio-societa/${r.societa_id}" target="_blank" class="link link-hover font-bold">${r.ragione_sociale || '-'}</a>` : (r.ragione_sociale || '-')}</td>`}
-                                ${(sedeId || ufficioId) ? '' : `<td>${r.sede_id ? `<a href="/anagrafica/dettaglio-sede/${r.sede_id}" target="_blank" class="link link-hover font-bold">${formatSede(r)}</a>` : formatSede(r)}</td>`}
-                                ${ufficioId ? '' : `<td>${r.ufficio_id ? `<a href="/anagrafica/ufficio/dettaglio?id=${r.ufficio_id}&societa_id=${r.societa_id}" target="_blank" class="link link-hover font-bold">${formatUfficio(r)}</a>` : formatUfficio(r)}</td>`}
-                                <td class="actions-col text-right">
-                                    <div class="flex justify-end gap-1">
-                                        <a href="/anagrafica/gestione-referenti/dettaglio?id=${r.id}" target="_blank" class="btn btn-sm btn-square btn-primary" title="Dettaglio/Modifica"><i class="bi bi-pencil-square"></i></a>
-                                        <button class="btn btn-sm btn-square btn-error text-white" title="Elimina" onclick="deleteReferente(${r.id})"><i class="bi bi-trash"></i></button>
+                        const card = `
+                            <div class="card bg-base-100 shadow-md border border-base-200 hover:shadow-lg transition-shadow duration-200">
+                                <div class="card-body p-5">
+                                    <div class="flex justify-between items-start gap-2">
+                                        <h2 class="card-title text-lg font-bold text-primary break-words w-full">
+                                            ${persona.nome || ''} ${persona.cognome || ''}
+                                        </h2>
                                     </div>
-                                </td>
-                            </tr>
+                                    
+                                    <div class="text-xs text-gray-500 mb-2 flex items-center gap-1" title="Contesto">
+                                        <i class="bi ${contextIcon}"></i> ${contextLabel}
+                                    </div>
+
+                                    <!-- Ruoli -->
+                                    <div class="flex flex-wrap gap-1 mt-1">
+                                        ${categorie.length > 0 ? categorie.map(cat => `<span class="badge badge-ghost bg-blue-50 text-blue-700 border-blue-100 text-xs">${cat.valore}</span>`).join('') : ''}
+                                    </div>
+
+                                    <!-- Contatti -->
+                                    <div class="mt-3 space-y-1">
+                                        ${contatti.length > 0 ? contatti.map(c => {
+                                            let icon = 'bi-chat-text';
+                                            if(c.tipo === 'email') icon = 'bi-envelope';
+                                            if(c.tipo === 'pec') icon = 'bi-envelope-check';
+                                            if(c.tipo === 'mobile') icon = 'bi-phone';
+                                            if(c.tipo === 'phone') icon = 'bi-telephone';
+                                            return `<div class="flex items-center gap-2 text-xs truncate" title="${c.tipo}: ${c.valore}">
+                                                <i class="bi ${icon} opacity-70"></i> <span class="opacity-90">${c.valore}</span>
+                                            </div>`;
+                                        }).join('') : '<div class="text-xs italic opacity-50">Nessun contatto</div>'}
+                                    </div>
+
+                                    <!-- Azioni -->
+                                    <div class="card-actions justify-end mt-4 pt-4 border-t border-base-200">
+                                        <a href="/anagrafica/gestione-referenti/dettaglio?id=${r.id}" target="_blank" class="btn btn-sm btn-primary" title="Modifica"><i class="bi bi-pencil-square"></i></a>
+                                        <button onclick="deleteReferente('${r.id}')" class="btn btn-sm btn-error text-white" title="Elimina">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         `;
+                        container.innerHTML += card;
                     });
                 })
                 .catch(err => console.error('Errore caricamento:', err));
         }
 
-        function formatSede(r) {
-            if (!r.sede_id) return r.contesto_sede || '-';
-            if (r.sede_desc) return r.sede_desc;
-
-            const parti = [
-                r.sede_via,
-                r.sede_numero_civico,
-                r.sede_cap,
-                r.sede_comune,
-                r.sede_provincia,
-                r.sede_paese
-            ];
-            const indirizzo = parti.filter(p => p && String(p).trim() !== '').join(' ');
-            const tipo = r.tipo_sede_valore || r.tipo_sede || 'Sede';
-            
-            return indirizzo ? `${indirizzo} (${tipo})` : (r.contesto_sede || '-');
-        }
-
-        function formatUfficio(r) {
-            if (!r.ufficio_id) return '-';
-            if (r.nome_ufficio && r.nome_ufficio.trim() !== '') return `${r.nome_ufficio} (${r.tipo_ufficio})`;
-            return r.tipo_ufficio || '-';
-        }
-
-        document.getElementById('filterForm').addEventListener('submit', (e) => { e.preventDefault(); loadReferenti(); });
-        function resetFilters() { document.getElementById('filterForm').reset(); loadReferenti(); }
-        function deleteReferente(id) { 
-            if(confirm('Eliminare questo referente?')) { 
-                fetch('/anagrafica/gestione-referenti/delete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: id })
-                })
+        function loadRuoli() {
+            fetch('/api/settings/categorie?gruppo=RUOLO')
                 .then(res => res.json())
-                .then(data => {
-                    if(data.error) alert('Errore: ' + data.error);
-                    else loadReferenti();
+                .then(ruoli => {
+                    const container = document.getElementById('ruoliContainer');
+                    container.innerHTML = ''; 
+                    ruoli.forEach(ruolo => {
+                        container.innerHTML += `
+                            <label class="cursor-pointer flex items-center gap-2 select-none">
+                                <input type="checkbox" name="ruoli" value="${ruolo.id}" class="checkbox checkbox-xs checkbox-primary" />
+                                <span class="label-text text-xs whitespace-nowrap" title="${ruolo.valore}">${ruolo.valore}</span>
+                            </label>`;
+                    });
                 })
-                .catch(err => console.error(err));
-            } 
+                .catch(err => console.error('Errore caricamento ruoli:', err));
+        }
+
+        document.getElementById('filterForm').addEventListener('submit', (e) => { 
+            e.preventDefault(); 
+            loadReferenti(); 
+        });
+        
+        function resetFilters() { 
+            document.getElementById('filterForm').reset(); 
+            loadReferenti(); 
+        }
+
+        function deleteReferente(id) {
+            const i = prompt("Scrivi 'elimina' per confermare:");
+            if (i !== 'elimina') return;
+            
+            fetch('/anagrafica/gestione-referenti/delete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ id: id, confirm_prompt: 'elimina' })
+            }).then(response => {
+                if (response.ok) {
+                    loadReferenti(); 
+                } else {
+                    response.text().then(text => alert('Errore eliminazione: ' + text));
+                }
+            }).catch(err => {
+                console.error('Errore fetch delete:', err);
+                alert('Errore di rete durante l\'eliminazione.');
+            });
         }
     </script>
 </body>

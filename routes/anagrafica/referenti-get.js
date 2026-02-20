@@ -6,7 +6,7 @@ const getPb = require('../../pocketbase-client');
 router.get('/api/anagrafica/referenti', async (req, res) => {
   try {
     const pb = await getPb();
-    const { id, societa_id, sede_id, ufficio_id, search } = req.query;
+    const { id, societa_id, sede_id, ufficio_id, search, ruoli } = req.query;
 
     // Helper per escape caratteri nelle stringhe di filtro
     const escape = (str) => (str || '').replace(/"/g, '\\"');
@@ -22,6 +22,13 @@ router.get('/api/anagrafica/referenti', async (req, res) => {
       if (sede_id) filters.push(`sede = "${escape(sede_id)}"`);
       if (ufficio_id) filters.push(`ufficio = "${escape(ufficio_id)}"`);
 
+      const ruoliIds = ruoli ? (Array.isArray(ruoli) ? ruoli : [ruoli].filter(Boolean)) : [];
+      if (ruoliIds.length > 0) {
+        // Filtra per le categorie richieste (Ruoli)
+        const roleFilters = ruoliIds.map(rid => `categorie.id ?= "${escape(rid)}"`);
+        filters.push(`(${roleFilters.join(' || ')})`);
+      }
+
       if (search) {
         // Logica di ricerca "DataTable.js style" su più campi
         const searchableFields = [
@@ -29,7 +36,8 @@ router.get('/api/anagrafica/referenti', async (req, res) => {
           'persona.cognome',
           'persona.codice_fiscale',
           'categorie.valore',
-          'contatti.valore'
+          'contatti.valore',
+          'contatti.tipo'
         ];
 
         const terms = search.trim().split(/\s+/).filter(Boolean);
@@ -70,7 +78,7 @@ router.get('/api/anagrafica/referenti', async (req, res) => {
     const records = await pb.collection('referenti').getFullList({
       filter: filterString,
       sort: '-created',
-      expand: 'persona,categorie,contatti,societa,sede,ufficio',
+      expand: 'persona,categorie,contatti,societa,sede,sede.indirizzo,sede.categorie,ufficio,ufficio.categorie',
     });
 
     res.json(records);
