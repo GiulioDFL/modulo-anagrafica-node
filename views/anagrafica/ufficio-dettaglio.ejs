@@ -29,11 +29,6 @@
                     <input type="hidden" id="societa_id" name="societa_id" value="<%= societa_id %>">
                     <% } %>
 
-                    <div class="form-control">
-                        <label for="nome_ufficio" class="label"><span class="label-text">Nome Ufficio</span></label>
-                        <input type="text" class="input input-bordered w-full" id="nome_ufficio" name="nome_ufficio">
-                    </div>
-
                     <!-- Gestione Contatti -->
                     <div class="form-control">
                         <label class="label font-semibold"><span class="label-text">Contatti</span></label>
@@ -201,7 +196,6 @@
                 .then(async data => {
                     if (data && data.length > 0) {
                         const item = data[0];
-                        document.getElementById('nome_ufficio').value = item.nome_ufficio || '';
 
                         // Caricamento contatti esistenti
                         if (item.expand && item.expand.contatti) {
@@ -223,7 +217,15 @@
                         ];
                         
                         if (item.sede_id) {
-                            contextItems.push({ label: 'Sede', value: item.collocazione, url: `/anagrafica/dettaglio-sede/${item.sede_id}` });
+                            let sedeLabel = 'Indirizzo sede non disponibile';
+                            if (item.expand?.sede) {
+                                const s = item.expand.sede;
+                                const ind = s.expand?.indirizzo || {};
+                                const via = [ind.via, ind.numero_civico].filter(Boolean).join(' ');
+                                const loc = [ind.cap, ind.comune, ind.provincia ? `(${ind.provincia})` : ''].filter(Boolean).join(' ');
+                                sedeLabel = [via, loc].filter(Boolean).join(', ') || sedeLabel;
+                            }
+                            contextItems.push({ label: 'Sede', value: sedeLabel, url: `/anagrafica/dettaglio-sede/${item.sede_id}` });
                         }
                         renderContext(contextItems);
                     } else {
