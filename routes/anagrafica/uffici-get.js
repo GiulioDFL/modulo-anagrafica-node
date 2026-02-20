@@ -6,7 +6,7 @@ const getPb = require('../../pocketbase-client');
 router.get('/api/anagrafica/uffici', async (req, res) => {
   try {
     const pb = await getPb();
-    const { id, societa_id, sede_id, search } = req.query;
+    const { id, societa_id, sede_id, search, tipi_ufficio } = req.query;
 
     // Helper per escape caratteri nelle stringhe di filtro
     const escape = (str) => (str || '').replace(/"/g, '\\"');
@@ -24,6 +24,13 @@ router.get('/api/anagrafica/uffici', async (req, res) => {
 
       if (sede_id) {
         filters.push(`sede = "${escape(sede_id)}"`);
+      }
+
+      const tipiUfficioIds = tipi_ufficio ? (Array.isArray(tipi_ufficio) ? tipi_ufficio : [tipi_ufficio].filter(Boolean)) : [];
+      if (tipiUfficioIds.length > 0) {
+        // Filtra per le categorie richieste
+        const typeFilters = tipiUfficioIds.map(tid => `categorie.id ?= "${escape(tid)}"`);
+        filters.push(`(${typeFilters.join(' || ')})`);
       }
 
       if (search) {
@@ -72,7 +79,7 @@ router.get('/api/anagrafica/uffici', async (req, res) => {
     const records = await pb.collection('uffici').getFullList({
       filter: filterString,
       sort: '-created',
-      expand: 'categorie,contatti,sede,societa',
+      expand: 'categorie,contatti,sede,sede.indirizzo,societa',
     });
 
     res.json(records);
