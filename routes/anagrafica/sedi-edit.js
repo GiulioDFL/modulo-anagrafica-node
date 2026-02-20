@@ -3,7 +3,7 @@ const router = express.Router();
 const getPb = require('../../pocketbase-client');
 
 router.post('/anagrafica/gestione-sedi/edit', async (req, res) => {
-  let { id, indirizzo_id, societa_id, tipo_sede_id, via, numero_civico, cap, comune, provincia, paese, contatti_json } = req.body;
+  let { id, indirizzo_id, societa_id, tipo_sede_id, via, numero_civico, cap, comune, provincia, paese, contatti_json, funzioni_ids } = req.body;
 
   if (!id || !societa_id || !tipo_sede_id) {
     return res.status(400).json({ error: "ID Sede, Società e Tipo Sede sono obbligatori." });
@@ -78,8 +78,12 @@ router.post('/anagrafica/gestione-sedi/edit', async (req, res) => {
         }
     }
 
+    // Gestione Categorie: Unisce Tipo Sede (obbligatorio) con Funzioni (opzionali)
+    const funzioni = Array.isArray(funzioni_ids) ? funzioni_ids : (funzioni_ids ? [funzioni_ids] : []);
+    const categorie = [tipo_sede_id, ...funzioni];
+
     // Aggiorna la categoria della sede
-    const updatedSedeData = { categorie: [tipo_sede_id], contatti: [...new Set(listaContatti)] };
+    const updatedSedeData = { categorie: [...new Set(categorie)], contatti: [...new Set(listaContatti)] };
     await pb.collection('sedi').update(id, updatedSedeData);
 
     // Elimina i contatti che sono stati rimossi dalla sede

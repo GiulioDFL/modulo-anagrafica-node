@@ -3,7 +3,7 @@ const router = express.Router();
 const getPb = require('../../pocketbase-client');
 
 router.post('/anagrafica/gestione-sedi/add', async (req, res) => {
-  let { societa_id, tipo_sede_id, via, numero_civico, cap, comune, provincia, paese, contatti_json } = req.body;
+  let { societa_id, tipo_sede_id, via, numero_civico, cap, comune, provincia, paese, contatti_json, funzioni_ids } = req.body;
 
   // Validazione base
   if (!societa_id || !tipo_sede_id || !paese) {
@@ -68,8 +68,12 @@ router.post('/anagrafica/gestione-sedi/add', async (req, res) => {
         }
     }
 
+    // Gestione Categorie: Unisce Tipo Sede (obbligatorio) con Funzioni (opzionali)
+    const funzioni = Array.isArray(funzioni_ids) ? funzioni_ids : (funzioni_ids ? [funzioni_ids] : []);
+    const categorie = [tipo_sede_id, ...funzioni];
+
     // Creazione record Sede (unificato per legale e operativa)
-    const sedeData = { societa: societa_id, indirizzo: indirizzoRecord.id, categorie: [tipo_sede_id], contatti: [...new Set(listaContatti)] };
+    const sedeData = { societa: societa_id, indirizzo: indirizzoRecord.id, categorie: [...new Set(categorie)], contatti: [...new Set(listaContatti)] };
     const record = await pb.collection('sedi').create(sedeData);
     
     res.json({ success: true, message: "Sede inserita con successo.", id: record.id });
