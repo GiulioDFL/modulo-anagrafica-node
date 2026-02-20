@@ -3,7 +3,7 @@ const router = express.Router();
 const getPb = require('../../pocketbase-client');
 
 router.post('/anagrafica/gestione-sedi/add', async (req, res) => {
-  let { societa_id, tipo_sede_id, via, numero_civico, cap, comune, provincia, paese } = req.body;
+  let { societa_id, tipo_sede_id, via, numero_civico, cap, comune, provincia, paese, contatti_json } = req.body;
 
   // Validazione base
   if (!societa_id || !tipo_sede_id || !paese) {
@@ -41,8 +41,35 @@ router.post('/anagrafica/gestione-sedi/add', async (req, res) => {
     const indirizzoData = { via, numero_civico, cap, comune, provincia, paese };
     const indirizzoRecord = await pb.collection('indirizzi').create(indirizzoData);
 
+    // Gestione Contatti: Processa il JSON ricevuto dal frontend
+    let listaContatti = [];
+    if (contatti_json) {
+        try {
+            const contactsInput = JSON.parse(contatti_json);
+            for (const c of contactsInput) {
+                let contactId = c.id;
+                const contactData = { tipo: c.tipo, valore: c.valore };
+                
+                if (contactId) {
+                    try { await pb.collection('contatti').update(contactId, contactData); } 
+                    catch (e) { try { const ex = await pb.collection('contatti').getFirstListItem(`valore="${c.valore}"`); contactId = ex.id; } catch (ex) {} }
+                } else {
+                    try { 
+                        const newC = await pb.collection('contatti').create(contactData); 
+                        contactId = newC.id; 
+                    } catch (e) {
+                        try { const ex = await pb.collection('contatti').getFirstListItem(`valore="${c.valore}"`); contactId = ex.id; } catch (ex) {}
+                    }
+                }
+                if (contactId) listaContatti.push(contactId);
+            }
+        } catch (e) {
+            console.error("Errore processamento contatti:", e);
+        }
+    }
+
     // Creazione record Sede (unificato per legale e operativa)
-    const sedeData = { societa: societa_id, indirizzo: indirizzoRecord.id, categorie: [tipo_sede_id] };
+    const sedeData = { societa: societa_id, indirizzo: indirizzoRecord.id, categorie: [tipo_sede_id], contatti: [...new Set(listaContatti)] };
     const record = await pb.collection('sedi').create(sedeData);
     
     res.json({ success: true, message: "Sede inserita con successo.", id: record.id });

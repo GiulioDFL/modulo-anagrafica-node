@@ -3,7 +3,7 @@ const router = express.Router();
 const getPb = require('../../pocketbase-client');
 
 router.post('/anagrafica/gestione-sedi/edit', async (req, res) => {
-  let { id, indirizzo_id, societa_id, tipo_sede_id, via, numero_civico, cap, comune, provincia, paese } = req.body;
+  let { id, indirizzo_id, societa_id, tipo_sede_id, via, numero_civico, cap, comune, provincia, paese, contatti_json } = req.body;
 
   if (!id || !societa_id || !tipo_sede_id) {
     return res.status(400).json({ error: "ID Sede, Società e Tipo Sede sono obbligatori." });
@@ -17,6 +17,7 @@ router.post('/anagrafica/gestione-sedi/edit', async (req, res) => {
     // Recupera lo stato attuale della sede
     const currentSede = await pb.collection('sedi').getOne(id, { expand: 'categorie' });
     const wasLegal = currentSede.expand && currentSede.expand.categorie && currentSede.expand.categorie.some(c => c.id === catSedeLegale.id);
+    const oldContacts = currentSede.contatti || [];
 
     // --- CONFLICT CHECK ---
     if (isNowLegal && !wasLegal) {
@@ -50,8 +51,43 @@ router.post('/anagrafica/gestione-sedi/edit', async (req, res) => {
         await pb.collection('indirizzi').update(currentIndirizzoId, indirizzoData);
     }
 
+    // Gestione Contatti
+    let listaContatti = [];
+    if (contatti_json) {
+        try {
+            const contactsInput = JSON.parse(contatti_json);
+            for (const c of contactsInput) {
+                let contactId = c.id;
+                const contactData = { tipo: c.tipo, valore: c.valore };
+                
+                if (contactId) {
+                    try { await pb.collection('contatti').update(contactId, contactData); } 
+                    catch (e) { try { const ex = await pb.collection('contatti').getFirstListItem(`valore="${c.valore}"`); contactId = ex.id; } catch (ex) {} }
+                } else {
+                    try { 
+                        const newC = await pb.collection('contatti').create(contactData); 
+                        contactId = newC.id; 
+                    } catch (e) {
+                        try { const ex = await pb.collection('contatti').getFirstListItem(`valore="${c.valore}"`); contactId = ex.id; } catch (ex) {}
+                    }
+                }
+                if (contactId) listaContatti.push(contactId);
+            }
+        } catch (e) {
+            console.error("Errore processamento contatti:", e);
+        }
+    }
+
     // Aggiorna la categoria della sede
-    await pb.collection('sedi').update(id, { categorie: [tipo_sede_id] });
+    const updatedSedeData = { categorie: [tipo_sede_id], contatti: [...new Set(listaContatti)] };
+    await pb.collection('sedi').update(id, updatedSedeData);
+
+    // Elimina i contatti che sono stati rimossi dalla sede
+    const removedContacts = oldContacts.filter(cid => !updatedSedeData.contatti.includes(cid));
+    for (const cid of removedContacts) {
+        try { await pb.collection('contatti').delete(cid); } 
+        catch (e) { console.warn(`Impossibile eliminare contatto orfano ${cid}:`, e.message); }
+    }
 
     res.json({ success: true, message: "Sede aggiornata con successo." });
   } catch (err) {
