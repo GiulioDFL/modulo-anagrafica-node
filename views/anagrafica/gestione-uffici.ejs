@@ -93,7 +93,7 @@
                                 const indirizzoData = s.expand?.indirizzo || {};
                                 const indirizzo = [indirizzoData.via, indirizzoData.numero_civico].filter(Boolean).join(' ');
                                 const localita = [indirizzoData.cap, indirizzoData.comune, indirizzoData.provincia ? `(${indirizzoData.provincia})` : ''].filter(Boolean).join(' ');
-                                const indirizzoCompleto = [indirizzo, localita].filter(x => x && String(x).trim()).join(', ');
+                                const indirizzoCompleto = [indirizzo, localita, indirizzoData.paese].filter(x => x && String(x).trim()).join(', ');
                                 const tipo = s.expand?.categorie?.[0]?.valore || 'Sede';
                                 
                                 hierarchyHtml += ` <i class="bi bi-chevron-right mx-1"></i> Sede: <a href="/anagrafica/dettaglio-sede/${s.id}" target="_blank" class="link link-hover font-bold">${indirizzoCompleto} - ${tipo}</a>`;
@@ -138,7 +138,11 @@
                             const ind = s.expand?.indirizzo || {};
                             const via = [ind.via, ind.numero_civico].filter(Boolean).join(' ');
                             const loc = [ind.cap, ind.comune, ind.provincia ? `(${ind.provincia})` : ''].filter(Boolean).join(' ');
-                            sedeLabel = [via, loc].filter(Boolean).join(', ') || 'Indirizzo sede non disponibile';
+                            const paese = ind.paese;
+                            const catsSede = s.expand?.categorie ? (Array.isArray(s.expand.categorie) ? s.expand.categorie : [s.expand.categorie]) : [];
+                            const tipoSede = catsSede.map(c => c.valore).join(', ');
+                            const indirizzo = [via, loc, paese].filter(Boolean).join(', ');
+                            sedeLabel = [indirizzo, tipoSede].filter(Boolean).join(' - ') || 'Indirizzo sede non disponibile';
                         }
 
                         const card = `
