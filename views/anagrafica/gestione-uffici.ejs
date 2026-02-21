@@ -124,6 +124,7 @@
                     countLabel.innerText = `${data.length} risultati trovati`;
 
                     data.forEach(u => {
+                        const societaNome = u.expand?.societa?.ragione_sociale || 'Società non definita';
                         const categorie = u.expand?.categorie ? (Array.isArray(u.expand.categorie) ? u.expand.categorie : [u.expand.categorie]) : [];
                         const contatti = u.expand?.contatti ? (Array.isArray(u.expand.contatti) ? u.expand.contatti : [u.expand.contatti]) : [];
                         
@@ -131,7 +132,7 @@
                         const nomeUfficio = categorie.map(c => c.valore).join(', ') || 'Ufficio Generico';
 
                         // Costruzione etichetta Collocazione (Sede)
-                        let sedeLabel = 'Sede non assegnata';
+                        let sedeLabel = 'Sede non specificata';
                         if (u.expand?.sede) {
                             const s = u.expand.sede;
                             const ind = s.expand?.indirizzo || {};
@@ -147,6 +148,9 @@
                                         <h2 class="card-title text-lg font-bold text-primary break-words w-full">${nomeUfficio}</h2>
                                     </div>
                                     
+                                    <div class="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                                        <i class="bi bi-building"></i> ${societaNome}
+                                    </div>
                                     <div class="text-xs text-gray-500 mb-2 flex items-center gap-1">
                                         <i class="bi bi-geo-alt"></i> ${sedeLabel}
                                     </div>

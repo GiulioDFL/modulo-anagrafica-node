@@ -152,39 +152,23 @@
                         const categorie = r.expand?.categorie ? (Array.isArray(r.expand.categorie) ? r.expand.categorie : [r.expand.categorie]) : [];
                         const contatti = r.expand?.contatti ? (Array.isArray(r.expand.contatti) ? r.expand.contatti : [r.expand.contatti]) : [];
                         
-                        // Costruzione Contesto (Dove lavora il referente)
-                        let contextLabel = '';
-                        let contextIcon = 'bi-building';
+                        // Dati Contesto Gerarchico
+                        const societaNome = r.expand?.societa?.ragione_sociale || 'Società non definita';
                         
-                        if (r.expand?.ufficio) {
-                            const u = r.expand.ufficio;
-                            const cats = u.expand?.categorie ? (Array.isArray(u.expand.categorie) ? u.expand.categorie : [u.expand.categorie]) : [];
-                            const nomeUff = cats.map(c => c.valore).join(', ') || 'Ufficio';
-                            
-                            // Aggiungi info sede se disponibile
-                            let sedeInfo = '';
-                            if (r.expand?.sede) {
-                                const s = r.expand.sede;
-                                const ind = s.expand?.indirizzo || {};
-                                const via = [ind.via, ind.numero_civico].filter(Boolean).join(' ');
-                                const loc = [ind.comune, ind.provincia ? `(${ind.provincia})` : ''].filter(Boolean).join(' ');
-                                sedeInfo = [via, loc].filter(Boolean).join(', ');
-                            }
-                            
-                            contextLabel = `${nomeUff}${sedeInfo ? ` - ${sedeInfo}` : ''}`;
-                            contextIcon = 'bi-door-open';
-                        } else if (r.expand?.sede) {
+                        let sedeLabel = 'Sede non specificata';
+                        if (r.expand?.sede) {
                             const s = r.expand.sede;
                             const ind = s.expand?.indirizzo || {};
                             const via = [ind.via, ind.numero_civico].filter(Boolean).join(' ');
-                            const loc = [ind.cap, ind.comune, ind.provincia ? `(${ind.provincia})` : ''].filter(Boolean).join(' ');
-                            const tipo = s.expand?.categorie?.[0]?.valore || 'Sede';
-                            contextLabel = `${[via, loc].filter(Boolean).join(', ')} - ${tipo}`;
-                            contextIcon = 'bi-geo-alt';
-                        } else if (r.expand?.societa) {
-                            contextLabel = r.expand.societa.ragione_sociale;
-                        } else {
-                            contextLabel = 'Nessuna assegnazione';
+                            const loc = [ind.comune, ind.provincia ? `(${ind.provincia})` : ''].filter(Boolean).join(' ');
+                            sedeLabel = [via, loc].filter(Boolean).join(', ');
+                        }
+
+                        let ufficioLabel = 'Ufficio non specificato';
+                        if (r.expand?.ufficio) {
+                            const u = r.expand.ufficio;
+                            const cats = u.expand?.categorie ? (Array.isArray(u.expand.categorie) ? u.expand.categorie : [u.expand.categorie]) : [];
+                            ufficioLabel = cats.map(c => c.valore).join(', ') || 'Ufficio';
                         }
 
                         const card = `
@@ -196,8 +180,16 @@
                                         </h2>
                                     </div>
                                     
-                                    <div class="text-xs text-gray-500 mb-2 flex items-center gap-1" title="Contesto">
-                                        <i class="bi ${contextIcon}"></i> ${contextLabel}
+                                    <div class="flex flex-col gap-1 mb-2">
+                                        <div class="text-xs text-gray-500 flex items-center gap-1" title="Società">
+                                            <i class="bi bi-building"></i> ${societaNome}
+                                        </div>
+                                        <div class="text-xs text-gray-500 flex items-center gap-1" title="Sede">
+                                            <i class="bi bi-geo-alt"></i> ${sedeLabel}
+                                        </div>
+                                        <div class="text-xs text-gray-500 flex items-center gap-1" title="Ufficio">
+                                            <i class="bi bi-door-open"></i> ${ufficioLabel}
+                                        </div>
                                     </div>
 
                                     <!-- Ruoli -->

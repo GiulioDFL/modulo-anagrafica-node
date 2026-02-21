@@ -113,6 +113,7 @@
                     countLabel.innerText = `${data.length} risultati trovati`;
 
                     data.forEach(item => {
+                        const societaNome = item.expand?.societa?.ragione_sociale || '';
                         const indirizzoData = item.expand?.indirizzo || {};
                         const via = [indirizzoData.via, indirizzoData.numero_civico].filter(Boolean).join(' ');
                         const localita = [indirizzoData.cap, indirizzoData.comune, indirizzoData.provincia ? `(${indirizzoData.provincia})` : ''].filter(Boolean).join(' ');
@@ -127,6 +128,8 @@
                                     <div class="flex justify-between items-start gap-2">
                                         <h2 class="card-title text-lg font-bold text-primary break-words w-full">${indirizzoCompleto}</h2>
                                     </div>
+
+                                    ${societaNome ? `<div class="text-xs text-gray-500 mb-2 flex items-center gap-1"><i class="bi bi-building"></i> ${societaNome}</div>` : ''}
 
                                     <!-- Tipi Sede -->
                                     <div class="flex flex-wrap gap-1 mt-3">
