@@ -92,7 +92,7 @@
                 pUfficio.then(dataUfficio => {
                     const u = (dataUfficio && dataUfficio.length > 0) ? dataUfficio[0] : null;
                     // Se abbiamo l'ufficio e ha una sede, ma non è nel contesto URL, usiamola
-                    const currentSedeId = (u && u.sede_id && !sedeId) ? u.sede_id : sedeId;
+                    const currentSedeId = (u && u.sede && !sedeId) ? u.sede : sedeId;
                     const pSede = currentSedeId ? fetch(`/api/anagrafica/sedi?id=${currentSedeId}`).then(res => res.json()) : Promise.resolve(null);
 
                     Promise.all([pSocieta, pSede]).then(([dataSocieta, dataSede]) => {
@@ -102,10 +102,11 @@
                             if (dataSede && dataSede.length > 0) {
                                 const s = dataSede[0];
                                 const indirizzoData = s.expand?.indirizzo || {};
-                                const via = [indirizzoData.via, indirizzoData.numero_civico].filter(Boolean).join(' ');
-                                const loc = [indirizzoData.cap, indirizzoData.comune, indirizzoData.provincia ? `(${indirizzoData.provincia})` : ''].filter(Boolean).join(' ');
-                                const indirizzoCompleto = [via, loc].filter(Boolean).join(', ');
-                                const tipo = s.expand?.categorie?.[0]?.valore || 'Sede';
+                                const indirizzo = [indirizzoData.via, indirizzoData.numero_civico].filter(Boolean).join(' ');
+                                const localita = [indirizzoData.cap, indirizzoData.comune, indirizzoData.provincia ? `(${indirizzoData.provincia})` : ''].filter(Boolean).join(' ');
+                                const indirizzoCompleto = [indirizzo, localita, indirizzoData.paese].filter(x => x && String(x).trim()).join(', ');
+                                const catsSede = s.expand?.categorie ? (Array.isArray(s.expand.categorie) ? s.expand.categorie : [s.expand.categorie]) : [];
+                                const tipo = catsSede.map(c => c.valore).join(', ') || 'Sede';
                                 hierarchyHtml += ` <i class="bi bi-chevron-right mx-1"></i> Sede: <a href="/anagrafica/dettaglio-sede/${s.id}" target="_blank" class="link link-hover font-bold">${indirizzoCompleto} - ${tipo}</a>`;
                             }
 
@@ -156,12 +157,21 @@
                         const societaNome = r.expand?.societa?.ragione_sociale || 'Società non definita';
                         
                         let sedeLabel = 'Sede non specificata';
-                        if (r.expand?.sede) {
-                            const s = r.expand.sede;
+                        // Cerca la sede diretta, altrimenti usa quella dell'ufficio
+                        let s = r.expand?.sede;
+                        if (!s && r.expand?.ufficio?.expand?.sede) {
+                            s = r.expand.ufficio.expand.sede;
+                        }
+
+                        if (s) {
                             const ind = s.expand?.indirizzo || {};
                             const via = [ind.via, ind.numero_civico].filter(Boolean).join(' ');
                             const loc = [ind.comune, ind.provincia ? `(${ind.provincia})` : ''].filter(Boolean).join(' ');
-                            sedeLabel = [via, loc].filter(Boolean).join(', ');
+                            const paese = ind.paese;
+                            const catsSede = s.expand?.categorie ? (Array.isArray(s.expand.categorie) ? s.expand.categorie : [s.expand.categorie]) : [];
+                            const tipoSede = catsSede.map(c => c.valore).join(', ');
+                            const indirizzo = [via, loc, paese].filter(Boolean).join(', ');
+                            sedeLabel = [indirizzo, tipoSede].filter(Boolean).join(' - ') || 'Indirizzo sede non disponibile';
                         }
 
                         let ufficioLabel = 'Ufficio non specificato';

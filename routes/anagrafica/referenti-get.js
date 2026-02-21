@@ -78,7 +78,7 @@ router.get('/api/anagrafica/referenti', async (req, res) => {
     const records = await pb.collection('referenti').getFullList({
       filter: filterString,
       sort: '-created',
-      expand: 'persona,categorie,contatti,societa,sede,sede.indirizzo,sede.categorie,ufficio,ufficio.categorie',
+      expand: 'persona,categorie,contatti,societa,sede,sede.indirizzo,sede.categorie,ufficio,ufficio.categorie,ufficio.sede,ufficio.sede.indirizzo,ufficio.sede.categorie',
     });
 
     res.json(records);
