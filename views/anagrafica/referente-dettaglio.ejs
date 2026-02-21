@@ -166,8 +166,10 @@
                     const data = await res.json();
                     if (data && data.length > 0) {
                         const s = data[0];
-                        const partiIndirizzo = [s.via, s.numero_civico, s.cap, s.comune, s.provincia, s.paese].filter(p => p && String(p).trim() !== '').join(' ');
-                        const tipo = s.tipo_sede_desc || s.tipo_sede || 'Sede';
+                        const ind = s.expand?.indirizzo || {};
+                        const partiIndirizzo = [ind.via, ind.numero_civico, ind.cap, ind.comune, ind.provincia, ind.paese].filter(p => p && String(p).trim() !== '').join(' ');
+                        const catsSede = s.expand?.categorie ? (Array.isArray(s.expand.categorie) ? s.expand.categorie : [s.expand.categorie]) : [];
+                        const tipo = catsSede.map(c => c.valore).join(', ') || 'Sede';
                         items.push({ label: 'Sede', value: `${partiIndirizzo} (${tipo})`, url: `/anagrafica/dettaglio-sede/${sedeId}` });
                     }
                 } catch (e) { console.error("Errore caricamento sede", e); }
@@ -179,8 +181,9 @@
                     const data = await res.json();
                     if (data && data.length > 0) {
                         const u = data[0];
-                        const nome = u.nome_ufficio ? `${u.nome_ufficio} (${u.tipo_ufficio})` : u.tipo_ufficio;
-                        items.push({ label: 'Ufficio', value: nome, url: `/anagrafica/ufficio/dettaglio?id=${ufficioId}&societa_id=${u.societa_id || societaId}` });
+                        const catsUff = u.expand?.categorie ? (Array.isArray(u.expand.categorie) ? u.expand.categorie : [u.expand.categorie]) : [];
+                        const nome = catsUff.map(c => c.valore).join(', ') || 'Ufficio';
+                        items.push({ label: 'Ufficio', value: nome, url: `/anagrafica/ufficio/dettaglio?id=${ufficioId}&societa_id=${u.societa || societaId}` });
                     }
                 } catch (e) { console.error("Errore caricamento ufficio", e); }
             }
@@ -196,10 +199,11 @@
                 .then(data => {
                     if (data && data.length > 0) {
                         const item = data[0];
-                        document.getElementById('nome').value = item.nome || '';
-                        document.getElementById('cognome').value = item.cognome || '';
+                        const persona = item.expand?.persona || {};
+                        document.getElementById('nome').value = persona.nome || '';
+                        document.getElementById('cognome').value = persona.cognome || '';
                         // Impostiamo l'ID persona per l'update
-                        document.getElementById('persona_id').value = item.persona_id || '';
+                        document.getElementById('persona_id').value = item.persona || '';
 
                         // Caricamento contatti esistenti
                         if (item.expand && item.expand.contatti) {
@@ -216,18 +220,31 @@
                         }
 
                         // Context Logic for Edit
-                        const items = [
-                            { label: 'Società', value: item.ragione_sociale, url: `/anagrafica/dettaglio-societa/${item.societa_id}` }
-                        ];
-                        
-                        if (item.sede_id) {
-                            const indirizzo = [item.sede_via, item.sede_numero_civico, item.sede_cap, item.sede_comune, item.sede_provincia, item.sede_paese].filter(p => p && String(p).trim() !== '').join(' ');
-                            const tipo = item.tipo_sede || 'Sede';
-                            items.push({ label: 'Sede', value: `${indirizzo} (${tipo})`, url: `/anagrafica/dettaglio-sede/${item.sede_id}` });
+                        const items = [];
+                        const societa = item.expand?.societa;
+                        if (societa) {
+                            items.push({ label: 'Società', value: societa.ragione_sociale, url: `/anagrafica/dettaglio-societa/${item.societa}` });
                         }
-                        if (item.ufficio_id) {
-                            const nomeUff = item.nome_ufficio ? `${item.nome_ufficio} (${item.tipo_ufficio})` : item.tipo_ufficio;
-                            items.push({ label: 'Ufficio', value: nomeUff, url: `/anagrafica/ufficio/dettaglio?id=${item.ufficio_id}&societa_id=${item.societa_id}` });
+                        
+                        let sede = item.expand?.sede;
+                        // Se non c'è una sede diretta, controlliamo se l'ufficio ha una sede associata
+                        if (!sede && item.expand?.ufficio?.expand?.sede) {
+                            sede = item.expand.ufficio.expand.sede;
+                        }
+
+                        if (sede) {
+                            const ind = sede.expand?.indirizzo || {};
+                            const indirizzo = [ind.via, ind.numero_civico, ind.cap, ind.comune, ind.provincia, ind.paese].filter(p => p && String(p).trim() !== '').join(' ');
+                            const catsSede = sede.expand?.categorie ? (Array.isArray(sede.expand.categorie) ? sede.expand.categorie : [sede.expand.categorie]) : [];
+                            const tipo = catsSede.map(c => c.valore).join(', ') || 'Sede';
+                            items.push({ label: 'Sede', value: `${indirizzo} (${tipo})`, url: `/anagrafica/dettaglio-sede/${sede.id}` });
+                        }
+                        
+                        const ufficio = item.expand?.ufficio;
+                        if (ufficio) {
+                            const catsUff = ufficio.expand?.categorie ? (Array.isArray(ufficio.expand.categorie) ? ufficio.expand.categorie : [ufficio.expand.categorie]) : [];
+                            const nomeUff = catsUff.map(c => c.valore).join(', ') || 'Ufficio';
+                            items.push({ label: 'Ufficio', value: nomeUff, url: `/anagrafica/ufficio/dettaglio?id=${item.ufficio}&societa_id=${item.societa}` });
                         }
                         
                         renderContext(items);
