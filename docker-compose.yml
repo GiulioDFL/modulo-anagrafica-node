@@ -8,7 +8,7 @@ services:
     environment:
       - PORT=3000
       - GEMINI_API_KEY=AIzaSyDIcE8aTpsIdrnyx0EVNddC2aZXmixVgnI
-      - POCKET_BASE_URI=http://172.17.0.1:8090 # host che docker usa per raggiungere la macchina
+      - POCKET_BASE_URI=http://172.18.0.1:8090 # host che docker usa per raggiungere la macchina
       - POCKET_BASE_USER=lunafastpk@gmail.com
       - POCKET_BASE_PASSWORD=hxoRbL6Mo9c
     volumes:
