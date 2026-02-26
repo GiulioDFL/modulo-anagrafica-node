@@ -13,7 +13,6 @@ services:
       - POCKET_BASE_PASSWORD=${POCKET_BASE_PASSWORD}
     volumes:
       - .:/app
-      - /app/.env         # "Nasconde" il .env interno (lo rende vuoto/inaccessibile)
       - /app/node_modules # Protegge i moduli installati nel container
   pocketbase:
     image: ghcr.io/muchobien/pocketbase:latest # Immagine aggiornata e affidabile
