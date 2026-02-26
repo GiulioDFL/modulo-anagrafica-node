@@ -1,6 +1,36 @@
+# Dipendenze
 node_modules
+npm-debug.log
+yarn-error.log
+
+# Dati e Database (Importante: i dati devono stare nei volumi, non nell'immagine)
+pb_data
+storage
+*.sqlite
+
+# Segreti e Configurazioni Sensibili
+.env
+.env.*
+secrets.json
+
+# Git
 .git
 .gitignore
+
+# Editor e IDE
 .vscode
-npm-debug.log
-.env
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Docker (Evitiamo che il container contenga le sue stesse istruzioni)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentazione e test
+README.md
+docs
+tests
+unit-tests

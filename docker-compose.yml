@@ -6,14 +6,15 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     environment:
-      - PORT=3000
-      - GEMINI_API_KEY=AIzaSyDIcE8aTpsIdrnyx0EVNddC2aZXmixVgnI
-      - POCKET_BASE_URI=http://pocketbase:8090 # host che docker usa per raggiungere la macchina
-      - POCKET_BASE_USER=lunafastpk@gmail.com
-      - POCKET_BASE_PASSWORD=hxoRbL6Mo9c
+      - PORT=${PORT}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - POCKET_BASE_URI=${POCKET_BASE_URI}
+      - POCKET_BASE_USER=${POCKET_BASE_USER}
+      - POCKET_BASE_PASSWORD=${POCKET_BASE_PASSWORD}
     volumes:
       - .:/app
-      - /app/node_modules
+      - /app/.env         # "Nasconde" il .env interno (lo rende vuoto/inaccessibile)
+      - /app/node_modules # Protegge i moduli installati nel container
   pocketbase:
     image: ghcr.io/muchobien/pocketbase:latest # Immagine aggiornata e affidabile
     container_name: pocketbase-authenticator-container
