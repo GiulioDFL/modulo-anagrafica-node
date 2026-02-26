@@ -1,4 +1,23 @@
-node_modules
-database/database.db
-pb_data
+# Dipendenze
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Dati e Database (MAI caricare i dati su Git)
+pb_data/
+database/
+*.db
+*.sqlite
+
+# Segreti (Fondamentale!)
 .env
+.env.local
+.env.production
+
+# Sistema e IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Docker (Opzionale: di solito si tiene, ma se non vuoi versionare i log)
+*.log
