@@ -20,9 +20,8 @@ services:
     ports:
       - "127.0.0.1:8090:8090" # Accessibile dal bridge Docker
     volumes:
-      - ./pb_data:/pb_data
+      - ./pb_data:/pb/pb_data
     command:
       - serve
       - --http=0.0.0.0:8090
-      - --dir=/pb_data
     restart: always
