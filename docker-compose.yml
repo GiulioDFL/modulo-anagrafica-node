@@ -9,8 +9,8 @@ services:
       - PORT=${PORT}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - POCKET_BASE_URI=${POCKET_BASE_URI}
-      - POCKET_BASE_USER=${POCKET_BASE_USER}
-      - POCKET_BASE_PASSWORD=${POCKET_BASE_PASSWORD}
+      - PB_ADMIN_EMAIL=${PB_ADMIN_EMAIL}
+      - PB_ADMIN_PASSWORD=${PB_ADMIN_PASSWORD}
     volumes:
       - .:/app
       - /app/node_modules # Protegge i moduli installati nel container
