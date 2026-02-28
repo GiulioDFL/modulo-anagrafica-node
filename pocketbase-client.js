@@ -12,7 +12,7 @@ pb.autoCancellation(false); // Disabilita auto-cancellazione per uso server-side
 module.exports = async () => {
     try {
         if (!pb.authStore.isValid) {
-            await pb.collection('_superusers').authWithPassword(process.env.POCKET_BASE_USER, process.env.POCKET_BASE_PASSWORD);
+            await pb.collection('_superusers').authWithPassword(process.env.PB_ADMIN_EMAIL, process.env.PB_ADMIN_PASSWORD);
         }
         return pb;
     } catch (err) {
